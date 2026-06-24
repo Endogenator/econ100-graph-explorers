@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interactive Graph Lab 4: Monopoly</title>
+<style>
+:root{
+  --green:#008345; --green-light:#e6f4ed;
+  --gold:#c8960c; --gold-light:#fdf6e3;
+  --red:#c0392b; --red-light:#fdf0ee;
+  --blue:#1a5cb5; --blue-light:#eaf0fb;
+  --mr:#7aa5e0; --purple:#6b4ea0;
+  --border:#d0d7de; --card:#f6f8fa; --text:#1a1a1a; --muted:#555;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Georgia',serif; background:#fafafa; color:var(--text); max-width:980px; margin:0 auto; padding:1.25rem;}
+h1{font-size:1.55rem; font-weight:700; margin-bottom:.25rem; color:var(--green);}
+.subtitle{font-size:.95rem; color:var(--muted); margin-bottom:1rem;}
+button:focus-visible, input:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
+
+.scenario-bar{display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;}
+.scenario-bar span{font-weight:700; font-size:.9rem; color:var(--muted);}
+.sc-btn{border:2px solid var(--border); border-radius:8px; padding:.4rem .9rem; background:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; transition:all .15s;}
+.sc-btn.active{border-color:var(--green); background:var(--green-light); color:var(--green); font-weight:700;}
+.sc-btn:hover{border-color:var(--green);}
+
+.method-bar{display:grid; grid-template-columns:repeat(2,1fr); gap:.5rem; margin-bottom:1rem;}
+.m-step{border:1px solid var(--border); border-radius:8px; padding:.5rem .7rem; background:#fff; opacity:.5; transition:all .2s;}
+.m-step.on{opacity:1; border-color:var(--green); background:var(--green-light);}
+.m-num{font-size:.72rem; font-weight:700; letter-spacing:.06em; color:var(--green); text-transform:uppercase;}
+.m-text{font-size:.84rem; color:var(--text); line-height:1.3; margin-top:.1rem;}
+
+.step-card{border:1px solid var(--border); border-left:5px solid var(--green); border-radius:10px; background:#fff; padding:1rem 1.1rem; margin-bottom:1rem;}
+.step-label{font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--green); margin-bottom:.3rem;}
+.step-title{font-size:1.08rem; font-weight:700; margin-bottom:.35rem;}
+.step-body{font-size:.93rem; color:var(--muted); line-height:1.55;}
+.step-nav{display:flex; gap:.6rem; margin-top:.85rem; align-items:center;}
+.btn{border:2px solid var(--green); border-radius:8px; padding:.4rem .9rem; background:var(--green); color:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; font-weight:700; transition:all .15s;}
+.btn:hover{background:#006835;}
+.btn-ghost{background:#fff; color:var(--green);}
+.btn-ghost:hover{background:var(--green-light);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+
+.panel{display:grid; grid-template-columns:1fr; gap:1rem;}
+@media(min-width:820px){.panel{grid-template-columns:1.32fr .68fr; align-items:start;}}
+svg{width:100%; height:auto; background:#fff; border:1px solid var(--border); border-radius:12px; display:block;}
+
+.controls{border:1px solid var(--border); border-radius:12px; padding:1rem; background:#fff;}
+.ctrl-group{margin-bottom:1rem;}
+.ctrl-label{display:block; font-size:.9rem; font-weight:700; margin-bottom:.1rem; color:var(--text);}
+.ctrl-cause{display:block; font-size:.8rem; color:var(--muted); margin-bottom:.35rem; font-style:italic;}
+.ctrl-hint{font-size:.8rem; color:var(--muted); margin-top:.15rem;}
+input[type=range]{width:100%; height:6px; margin:.25rem 0; accent-color:var(--purple);}
+input[type=range]:disabled{opacity:.3;}
+
+.readout{border:1px solid var(--border); border-radius:10px; padding:.75rem .85rem; background:var(--card); margin-bottom:.75rem;}
+.readout-main{font-family:'Courier New',monospace; font-size:1rem; font-weight:700; color:var(--text);}
+.readout-line{font-size:.85rem; color:var(--muted); margin-top:.3rem;}
+.readout-result{font-size:.95rem; font-weight:700; margin-top:.35rem;}
+.readout-result.profit{color:var(--green);}
+.readout-result.loss{color:var(--red);}
+.readout-markup{font-size:.84rem; color:var(--gold); font-weight:700; margin-top:.3rem; min-height:1rem;}
+
+.feedback-box{border:1px solid var(--border); border-radius:10px; padding:.7rem .85rem; background:#fff; min-height:3rem;}
+.feedback-box.correct{border-color:var(--green); background:var(--green-light);}
+.feedback-box.info{border-color:var(--blue); background:var(--blue-light);}
+.feedback-box.warn{border-color:var(--gold); background:var(--gold-light);}
+.msg{font-size:.9rem; line-height:1.5;}
+
+.legend{display:flex; gap:1rem; flex-wrap:wrap; margin-top:.55rem; font-size:.83rem; color:var(--muted);}
+.key{display:flex; align-items:center; gap:.4rem;}
+.sw{width:22px; height:4px; border-radius:2px;}
+.sw.box{height:13px; border-radius:3px;}
+
+.note{border-left:4px solid var(--gold); padding:.5rem .75rem; background:var(--gold-light); border-radius:8px; font-size:.88rem; margin-top:.75rem; line-height:1.5;}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<h1>Interactive Graph Lab 4: Monopoly</h1>
+<p class="subtitle">The only seller in the market. Same costs as a competitive firm, but it sets price by holding output back.</p>
+
+<div class="scenario-bar">
+  <span>Demand:</span>
+  <button class="sc-btn active" id="stBtn0" onclick="goState(0)">Strong (profit)</button>
+  <button class="sc-btn" id="stBtn1" onclick="goState(1)">Weak (loss)</button>
+</div>
+
+<div class="method-bar" id="methodBar">
+  <div class="m-step" data-m="0"><div class="m-num">Step 1 — Output</div><div class="m-text">Produce where MR = MC</div></div>
+  <div class="m-step" data-m="1"><div class="m-num">Step 2 — Price &amp; profit</div><div class="m-text">Price up to demand; profit = (price &minus; ATC) &times; output</div></div>
+</div>
+
+<div class="step-card" id="stepCard">
+  <div class="step-label" id="stepLabel"></div>
+  <div class="step-title" id="stepTitle"></div>
+  <div class="step-body" id="stepBody"></div>
+  <div class="step-nav">
+    <button class="btn btn-ghost" id="prevBtn" onclick="changeStep(-1)" disabled>&larr; Back</button>
+    <button class="btn" id="nextBtn" onclick="changeStep(1)">Next &rarr;</button>
+    <button class="btn btn-ghost" onclick="resetAll()" style="margin-left:auto;">Reset</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div>
+    <svg id="monSvg" viewBox="0 0 620 440" role="img" aria-label="Monopoly graph with demand, marginal revenue, marginal cost and average total cost, showing the price and profit at the monopoly output">
+      <rect x="0" y="0" width="620" height="440" fill="white"/>
+      <g id="gridLines" stroke="#eee" stroke-width="1"></g>
+
+      <g id="dwlLayer"></g>
+      <g id="rectLayer"></g>
+
+      <path id="atcCurve" d="" stroke="var(--purple)" stroke-width="3.5" fill="none"/>
+      <path id="mcCurve"  d="" stroke="var(--red)"    stroke-width="3.5" fill="none"/>
+      <line id="demandLine" x1="0" y1="0" x2="0" y2="0" stroke="var(--blue)" stroke-width="3.5"/>
+      <line id="mrLine"     x1="0" y1="0" x2="0" y2="0" stroke="var(--mr)"   stroke-width="3"/>
+
+      <line id="vLine" x1="0" y1="0" x2="0" y2="0" stroke="#555" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+      <line id="hLine" x1="0" y1="0" x2="0" y2="0" stroke="var(--blue)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.7"/>
+
+      <g id="markLayer"></g>
+      <g id="cueLayer"></g>
+
+      <circle id="priceDot" cx="0" cy="0" r="6" fill="var(--blue)"/>
+      <circle id="atcDot"   cx="0" cy="0" r="5.5" fill="var(--purple)"/>
+      <circle id="mcDot"    cx="0" cy="0" r="5.5" fill="var(--red)"/>
+      <circle id="mrDot"    cx="0" cy="0" r="5" fill="var(--mr)"/>
+
+      <line x1="70" y1="30" x2="70" y2="370" stroke="#111" stroke-width="3"/>
+      <line x1="70" y1="370" x2="580" y2="370" stroke="#111" stroke-width="3"/>
+      <polygon points="70,18 63,38 77,38" fill="#111"/>
+      <polygon points="592,370 572,363 572,377" fill="#111"/>
+      <g id="tickLabels" font-size="12" fill="#555" font-family="Georgia,serif"></g>
+      <text x="14" y="200" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle" transform="rotate(-90 14 200)">Price and cost ($ per unit)</text>
+      <text x="325" y="420" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle">Quantity (units)</text>
+
+      <text id="dLabel"   x="0" y="0" font-size="13" fill="var(--blue)"   font-family="Georgia,serif" font-weight="700">D</text>
+      <text id="mrLabel"  x="0" y="0" font-size="13" fill="var(--mr)"     font-family="Georgia,serif" font-weight="700">MR</text>
+      <text id="mcLabel"  x="0" y="0" font-size="13" fill="var(--red)"    font-family="Georgia,serif" font-weight="700">MC</text>
+      <text id="atcLabel" x="0" y="0" font-size="13" fill="var(--purple)" font-family="Georgia,serif" font-weight="700">ATC</text>
+    </svg>
+
+    <div class="legend">
+      <div class="key"><div class="sw" style="background:var(--blue);"></div>Demand (price)</div>
+      <div class="key"><div class="sw" style="background:var(--mr);"></div>Marginal revenue</div>
+      <div class="key"><div class="sw" style="background:var(--red);"></div>MC</div>
+      <div class="key"><div class="sw" style="background:var(--purple);"></div>ATC</div>
+      <div class="key"><div class="sw box" style="background:rgba(0,131,69,.18);border:1px solid var(--green);"></div>Profit</div>
+      <div class="key"><div class="sw box" style="background:rgba(200,150,12,.20);border:1px solid var(--gold);"></div>Lost trades</div>
+    </div>
+
+    <div class="note" id="conceptNote" style="display:none;"></div>
+  </div>
+
+  <div class="controls">
+    <div class="readout">
+      <div class="readout-main" id="readMain">Price = $59 &nbsp;|&nbsp; Output = 5.2</div>
+      <div class="readout-line" id="readLine">ATC = $41 &nbsp; TR = $306 &nbsp; TC = $213</div>
+      <div class="readout-result profit" id="readResult">Profit = +$93</div>
+      <div class="readout-markup" id="readMarkup"></div>
+    </div>
+
+    <div class="ctrl-group" id="qGroup">
+      <label class="ctrl-label" for="qSlider" id="qLabelTxt">Output</label>
+      <span class="ctrl-cause" id="qCause">set automatically where MR = MC</span>
+      <input type="range" id="qSlider" min="2" max="8" step="0.1" value="3" oninput="onQty()" aria-label="Output quantity" disabled/>
+      <div class="ctrl-hint">&larr; less output &nbsp;|&nbsp; more output &rarr;</div>
+    </div>
+
+    <div class="feedback-box info" id="feedbackBox">
+      <div class="msg" id="msgText">Work through the two steps using the buttons above the graph.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const X0=70, X1=570, Y0=30, Y1=370, QMAX=12, CMAX=100;
+const xQ=q=>X0+(clamp(q,0,QMAX)/QMAX)*(X1-X0);
+const yC=c=>Y1-(clamp(c,0,CMAX)/CMAX)*(Y1-Y0);
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+// shared cost technology (identical to the competitive firm lab)
+const F=108,A=40,Bc=9,Cc=1;
+const TC=q=>F+A*q-Bc*q*q+Cc*q*q*q;
+const MC=q=>A-2*Bc*q+3*Cc*q*q;
+const ATC=q=>q>0?TC(q)/q:Infinity;
+const MIN_AVC=19.75;
+
+// demand: P = alpha - 6q ;  MR = alpha - 12q
+const BETA=6;
+const D=(q,al)=>al-BETA*q;
+const MR=(q,al)=>al-2*BETA*q;
+const Qm=al=>(6+Math.sqrt(Math.max(0,12*al-444)))/6;   // MR = MC
+const Qc=al=>(12+Math.sqrt(Math.max(0,12*al-336)))/6;  // D = MC (competitive)
+const STRONG=90, WEAK=60;
+
+const steps=[
+  { label:'Setup', title:'The only seller faces the whole market',
+    body:'A monopoly is the single seller, so the downward demand line is its own. MC and ATC are the same cost technology as any firm. To sell one more unit it must lower the price on every unit, so the revenue from one more sale, marginal revenue, falls below the price. That is why MR sits under demand.',
+    demand:'strong', qMode:'auto', rule:[], state:0, dwl:false,
+    concept:'Watch the gap between the demand line and MR. It comes from cutting price on all units, not just the last one. That gap is what makes a monopoly different from a price taker.' },
+  { label:'Step 1', title:'Find output where MR meets MC',
+    body:'Price is read off demand at whatever quantity you choose. Drag output and watch the cue. Below the best quantity, the next unit brings in more than it costs, so MR is above MC and profit climbs. Past it, MR drops below MC and profit falls. Profit peaks where MR meets MC.',
+    demand:'strong', qMode:'manual', rule:[0], state:0, dwl:false,
+    concept:'Same rule as the competitive firm: produce where marginal revenue equals marginal cost. The difference is that here marginal revenue is not the price. The price is higher, read up on the demand curve.' },
+  { label:'Step 2', title:'Read the price, then the profit',
+    body:'Output now sits where MR meets MC. To find the price, go straight up from that quantity to the demand curve: that is the most buyers will pay for this amount. ATC at that quantity is cost per unit, and price minus ATC, times output, is the green profit box.',
+    demand:'strong', qMode:'auto', rule:[1], state:0, dwl:false,
+    concept:'Price sits above marginal cost. A competitive firm is pushed to price equal to marginal cost; a monopoly holds output back and charges more. That markup over marginal cost is the heart of monopoly.' },
+  { label:'Step 2', title:'Weak demand: even a monopoly can lose',
+    body:'Switch to weaker demand. The rule does not change, output still sits at MR equals MC, but now the price read off demand is below ATC. The box turns red: the monopoly is losing money.',
+    demand:'weak', qMode:'auto', rule:[1], state:1, dwl:false,
+    concept:'Being the only seller does not guarantee profit. If demand cannot cover average total cost, even a monopoly loses money, and it keeps producing in the short run only while price covers its variable cost, the same logic as any firm.' },
+  { label:'Capstone', title:'The trades that never happen',
+    body:'Compare the monopoly to a competitive market. Competition would push output out to where price equals marginal cost. The monopoly stops short, at MR equals MC. The shaded wedge between the two is the cost of that gap.',
+    demand:'strong', qMode:'auto', rule:[1], state:0, dwl:true,
+    concept:'Every unit in the shaded wedge is worth more to buyers than it costs to make, yet the monopoly does not produce it, because making more would force the price down on everything it sells. Those lost trades are the deadweight loss, the reason monopoly concerns economists.' }
+];
+
+let stepIdx=0, alpha=STRONG;
+const $=id=>document.getElementById(id);
+const qSlider=$('qSlider');
+const readMain=$('readMain'), readLine=$('readLine'), readResult=$('readResult'), readMarkup=$('readMarkup');
+const msgText=$('msgText'), feedbackBox=$('feedbackBox');
+const stepLabel=$('stepLabel'), stepTitle=$('stepTitle'), stepBody=$('stepBody'), conceptNote=$('conceptNote');
+const prevBtn=$('prevBtn'), nextBtn=$('nextBtn');
+const qGroup=$('qGroup'), qCause=$('qCause'), qLabelTxt=$('qLabelTxt');
+const mcCurve=$('mcCurve'), atcCurve=$('atcCurve'), demandLine=$('demandLine'), mrLine=$('mrLine');
+const dwlLayer=$('dwlLayer'), rectLayer=$('rectLayer'), markLayer=$('markLayer'), cueLayer=$('cueLayer');
+const vLine=$('vLine'), hLine=$('hLine');
+const priceDot=$('priceDot'), atcDot=$('atcDot'), mcDot=$('mcDot'), mrDot=$('mrDot');
+const dLabel=$('dLabel'), mrLabel=$('mrLabel'), mcLabel=$('mcLabel'), atcLabel=$('atcLabel');
+const gridLines=$('gridLines'), tickLabels=$('tickLabels'), methodBar=$('methodBar');
+
+function drawAxes(){
+  let g='', t='';
+  for(let q=0;q<=12;q+=2){ const x=xQ(q);
+    g+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#eee"/>`;
+    t+=`<text x="${x}" y="${Y1+16}" text-anchor="middle">${q}</text>`; }
+  for(let c=0;c<=100;c+=20){ const y=yC(c);
+    g+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#eee"/>`;
+    t+=`<text x="${X0-8}" y="${y+4}" text-anchor="end">$${c}</text>`; }
+  gridLines.innerHTML=g; tickLabels.innerHTML=t;
+}
+function pathFor(fn, qlo, qhi){
+  let pts=[];
+  for(let q=qlo;q<=qhi+1e-9;q+=0.1){ const c=fn(q);
+    if(c>CMAX||c<0){ if(pts.length) break; else continue; }
+    pts.push(xQ(q).toFixed(1)+' '+yC(c).toFixed(1)); }
+  return pts.length?'M '+pts.join(' L '):'';
+}
+function drawCostCurves(){
+  mcCurve.setAttribute('d', pathFor(MC,0.3,12));
+  atcCurve.setAttribute('d', pathFor(ATC,1.4,12));
+  mcLabel.setAttribute('x',xQ(8.1)); mcLabel.setAttribute('y',yC(MC(8.0))-2);
+  atcLabel.setAttribute('x',xQ(11.0)); atcLabel.setAttribute('y',yC(ATC(11.0))-8);
+}
+
+function render(){
+  const step=steps[stepIdx];
+  const manual=step.qMode==='manual';
+  const q = manual ? parseFloat(qSlider.value) : Qm(alpha);
+  if(!manual) qSlider.value=clamp(q,2,8);
+
+  // demand + MR lines for current alpha
+  const qDe=Math.min(12, alpha/BETA), qMr=Math.min(12, alpha/(2*BETA));
+  demandLine.setAttribute('x1',xQ(0)); demandLine.setAttribute('y1',yC(alpha));
+  demandLine.setAttribute('x2',xQ(qDe)); demandLine.setAttribute('y2',yC(D(qDe,alpha)));
+  mrLine.setAttribute('x1',xQ(0)); mrLine.setAttribute('y1',yC(alpha));
+  mrLine.setAttribute('x2',xQ(qMr)); mrLine.setAttribute('y2',yC(MR(qMr,alpha)));
+  dLabel.setAttribute('x',xQ(qDe)+4); dLabel.setAttribute('y',yC(D(qDe,alpha))+4);
+  mrLabel.setAttribute('x',xQ(qMr)+4); mrLabel.setAttribute('y',yC(0)+0);
+
+  const price=D(q,alpha), atc=ATC(q), mc=MC(q), mr=MR(q,alpha);
+  const tr=price*q, tc=TC(q), profit=tr-tc;
+
+  // deadweight-loss wedge (capstone)
+  drawDWL(step.dwl);
+
+  // profit / loss rectangle: price to ATC, width 0..q
+  drawRect(q, price, atc);
+
+  // vertical line at q (output) up to price; horizontal price read to axis
+  const xq=xQ(q), yp=yC(price);
+  vLine.setAttribute('x1',xq); vLine.setAttribute('x2',xq);
+  vLine.setAttribute('y1',yC(Math.max(price,atc,mc))); vLine.setAttribute('y2',Y1);
+  hLine.setAttribute('x1',X0); hLine.setAttribute('x2',xq); hLine.setAttribute('y1',yp); hLine.setAttribute('y2',yp);
+
+  priceDot.setAttribute('cx',xq); priceDot.setAttribute('cy',yp);
+  atcDot.setAttribute('cx',xq); atcDot.setAttribute('cy',yC(atc));
+  mcDot.setAttribute('cx',xq); mcDot.setAttribute('cy',yC(mc));
+  mrDot.setAttribute('cx',xq); mrDot.setAttribute('cy',yC(mr));
+  mrDot.style.display = (mr>=0)?'block':'none';
+
+  drawMarks(step, q, price, mc, atc);
+  drawCue(manual, q, mr, mc);
+
+  // readout
+  readMain.innerHTML = `Price = $${price.toFixed(0)} &nbsp;|&nbsp; Output = ${q.toFixed(1)}`;
+  readLine.innerHTML = `ATC = $${atc.toFixed(0)} &nbsp; TR = $${tr.toFixed(0)} &nbsp; TC = $${tc.toFixed(0)}`;
+  if(price-atc>0.5){ readResult.className='readout-result profit'; readResult.textContent=`Profit = +$${profit.toFixed(0)}`; }
+  else if(price-atc<-0.5){ readResult.className='readout-result loss'; readResult.textContent=`Loss = \u2212$${Math.abs(profit).toFixed(0)}`; }
+  else { readResult.className='readout-result'; readResult.textContent='Break-even'; }
+  readMarkup.textContent = `Price $${price.toFixed(0)} sits above marginal cost $${mc.toFixed(0)}: markup $${(price-mc).toFixed(0)}`;
+
+  document.querySelectorAll('.sc-btn').forEach((b,i)=>b.classList.toggle('active', i===step.state));
+  feedback(step, q, price, mc, atc, mr, profit, manual);
+}
+
+function drawRect(q, price, atc){
+  if(Math.abs(price-atc)<0.4){ rectLayer.innerHTML=''; return; }
+  const x=X0, w=xQ(q)-X0, top=yC(Math.max(price,atc)), bot=yC(Math.min(price,atc));
+  const profit=price>atc;
+  rectLayer.innerHTML=`<rect x="${x}" y="${top}" width="${w}" height="${bot-top}" fill="${profit?'rgba(0,131,69,.18)':'rgba(192,57,43,.16)'}" stroke="${profit?'var(--green)':'var(--red)'}" stroke-width="1.5"/>`;
+}
+
+function drawDWL(show){
+  if(!show){ dwlLayer.innerHTML=''; return; }
+  const qm=Qm(alpha), qc=Qc(alpha);
+  let pts=[];
+  for(let q=qm;q<=qc+1e-9;q+=0.1) pts.push([xQ(q),yC(MC(q))]);          // along MC
+  for(let q=qc;q>=qm-1e-9;q-=0.1) pts.push([xQ(q),yC(D(q,alpha))]);     // back along D
+  const poly=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const midx=xQ((qm+qc)/2+0.4), midy=yC((MC((qm+qc)/2)+D((qm+qc)/2,alpha))/2);
+  dwlLayer.innerHTML=`<polygon points="${poly}" fill="rgba(200,150,12,.20)" stroke="var(--gold)" stroke-width="1.2"/>`+
+    `<text x="${midx}" y="${midy}" font-size="11.5" fill="#b07d00" font-family="Georgia,serif" font-weight="700">lost trades</text>`;
+}
+
+function drawMarks(step, q, price, mc, atc){
+  const xq=xQ(q);
+  let h='';
+  // price label on the y-axis
+  h+=`<text x="${X0-10}" y="${yC(price)+4}" text-anchor="end" font-size="11.5" fill="var(--blue)" font-family="Georgia,serif" font-weight="700">$${price.toFixed(0)}</text>`;
+  // quantity label on x-axis
+  h+=`<text x="${xq}" y="${Y1+32}" text-anchor="middle" font-size="11.5" fill="#111" font-family="Georgia,serif" font-weight="700">${step.qMode==='manual'?'q = '+q.toFixed(1):'Qm = '+q.toFixed(1)}</text>`;
+  // competitive quantity marker in the capstone
+  if(step.dwl){ const qc=Qc(alpha);
+    h+=`<line x1="${xQ(qc)}" y1="${yC(MC(qc))}" x2="${xQ(qc)}" y2="${Y1}" stroke="var(--gold)" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.8"/>`;
+    h+=`<text x="${xQ(qc)}" y="${Y1+32}" text-anchor="middle" font-size="11" fill="#b07d00" font-family="Georgia,serif" font-weight="700">Qc = ${qc.toFixed(1)}</text>`;
+  }
+  markLayer.innerHTML=h;
+}
+
+function drawCue(show, q, mr, mc){
+  if(!show){ cueLayer.innerHTML=''; return; }
+  const xq=xQ(q), gap=mr-mc;
+  let txt, col;
+  if(gap>1.5){ txt='MR above MC: produce more'; col='var(--green)'; }
+  else if(gap<-1.5){ txt='MR below MC: cut back'; col='var(--red)'; }
+  else { txt='MR = MC: profit peaks here'; col='var(--green)'; }
+  const yMr=yC(mr), yMc=yC(mc);
+  cueLayer.innerHTML=`<line x1="${xq}" y1="${yMr}" x2="${xq}" y2="${yMc}" stroke="${col}" stroke-width="2.5" stroke-dasharray="3 3" opacity="0.85"/>`+
+    `<text x="${xq+8}" y="${(yMr+yMc)/2}" font-size="11.5" fill="${col}" font-family="Georgia,serif" font-weight="700">${txt}</text>`;
+}
+
+function feedback(step, q, price, mc, atc, mr, profit, manual){
+  if(stepIdx===0){ setFB('info','MR sits below demand because selling one more unit means cutting price on every unit. Move to Step 1 to use it.'); return; }
+  if(stepIdx===1){
+    const qs=Qm(alpha);
+    if(q<qs-0.3){ setFB('info',`MR is $${mr.toFixed(0)}, above MC $${mc.toFixed(0)}. The next unit adds more than it costs. Produce more. Profit so far: +$${profit.toFixed(0)}.`); return; }
+    if(q>qs+0.3){ setFB('warn',`MR is $${mr.toFixed(0)}, below MC $${mc.toFixed(0)}. The last unit cost more than it earned. Cut back. Profit has slipped to +$${profit.toFixed(0)}.`); return; }
+    setFB('correct',`MR meets MC at about Q = ${q.toFixed(1)}. Profit peaks here at +$${profit.toFixed(0)}. That is the output rule, and the price you can charge is higher, read up on demand at $${price.toFixed(0)}.`); return;
+  }
+  if(stepIdx===4){ const qc=Qc(alpha);
+    setFB('info',`The monopoly makes ${q.toFixed(1)} and stops. A competitive market would reach about ${qc.toFixed(1)}, where price meets MC. The shaded units are each worth more than they cost, but never get made.`); return;
+  }
+  // read steps 2 and 3
+  if(price-atc>0.5){ setFB('correct',`Output sits at MR = MC. Price read up to demand is $${price.toFixed(0)}, above ATC of $${atc.toFixed(0)}, so profit is the green box, +$${profit.toFixed(0)}. And $${price.toFixed(0)} sits above marginal cost $${mc.toFixed(0)}: the markup.`); }
+  else if(price-atc<-0.5){ setFB('warn',`Same rule, output at MR = MC. But the price read off demand, $${price.toFixed(0)}, is below ATC of $${atc.toFixed(0)}, so the box is red: a loss of $${Math.abs(profit).toFixed(0)}. The only seller can still lose money.`); }
+  else { setFB('info',`Price equals ATC here, so economic profit is about zero.`); }
+}
+function setFB(kind,msg){ feedbackBox.className='feedback-box '+kind; msgText.textContent=msg; }
+
+function paintRule(active){
+  methodBar.querySelectorAll('.m-step').forEach(el=>el.classList.toggle('on', active.includes(parseInt(el.dataset.m,10))));
+}
+function loadStep(){
+  const step=steps[stepIdx];
+  stepLabel.textContent=step.label; stepTitle.textContent=step.title; stepBody.textContent=step.body;
+  prevBtn.disabled=stepIdx===0;
+  nextBtn.textContent=stepIdx===steps.length-1?'Restart':'Next \u2192';
+  alpha = step.demand==='weak'?WEAK:STRONG;
+  const manual=step.qMode==='manual';
+  qSlider.disabled=!manual;
+  qGroup.style.opacity=manual?'1':'0.55';
+  qLabelTxt.textContent=manual?'Output (you control this)':'Output';
+  qCause.textContent=manual?'drag to find the most profitable quantity':'set automatically where MR = MC';
+  if(manual) qSlider.value=3;
+  if(step.concept){ conceptNote.textContent=step.concept; conceptNote.style.display='block'; }
+  else conceptNote.style.display='none';
+  paintRule(step.rule);
+  render();
+}
+window.changeStep=function(dir){
+  if(dir===1 && stepIdx===steps.length-1){ resetAll(); return; }
+  stepIdx=clamp(stepIdx+dir,0,steps.length-1); loadStep();
+};
+window.goState=function(i){ stepIdx = i===1?3:2; loadStep(); };
+window.onQty=function(){ render(); };
+window.resetAll=function(){ stepIdx=0; loadStep(); };
+
+drawAxes(); drawCostCurves(); loadStep();
+})();
+</script>
+
+<p style="font-size:.82rem; color:#888; margin-top:1rem; border-top:1px solid #eee; padding-top:.75rem;">
+If interactivity does not work inside Canvas, host this HTML file externally (Google Drive publish, OneDrive, GitHub Pages, or district web space) and embed it with an iframe on a Canvas Page.
+</p>
+</body>
+</html>

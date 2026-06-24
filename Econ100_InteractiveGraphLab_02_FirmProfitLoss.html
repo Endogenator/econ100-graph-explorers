@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interactive Graph Lab 2: Firm Profit and Loss</title>
+<style>
+:root{
+  --green:#008345;
+  --green-light:#e6f4ed;
+  --gold:#c8960c;
+  --gold-light:#fdf6e3;
+  --red:#c0392b;
+  --red-light:#fdf0ee;
+  --blue:#1a5cb5;
+  --blue-light:#eaf0fb;
+  --purple:#6b4ea0;
+  --border:#d0d7de;
+  --card:#f6f8fa;
+  --text:#1a1a1a;
+  --muted:#555;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Georgia',serif; background:#fafafa; color:var(--text); max-width:980px; margin:0 auto; padding:1.25rem;}
+h1{font-size:1.55rem; font-weight:700; margin-bottom:.25rem; color:var(--green);}
+.subtitle{font-size:.95rem; color:var(--muted); margin-bottom:1rem;}
+a{color:var(--blue);}
+button:focus-visible, input:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
+
+/* state selector */
+.scenario-bar{display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;}
+.scenario-bar span{font-weight:700; font-size:.9rem; color:var(--muted);}
+.sc-btn{border:2px solid var(--border); border-radius:8px; padding:.4rem .9rem; background:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; transition:all .15s;}
+.sc-btn.active{border-color:var(--green); background:var(--green-light); color:var(--green); font-weight:700;}
+.sc-btn:hover{border-color:var(--green);}
+
+/* two-step rule bar */
+.method-bar{display:grid; grid-template-columns:repeat(2,1fr); gap:.5rem; margin-bottom:1rem;}
+.m-step{border:1px solid var(--border); border-radius:8px; padding:.5rem .7rem; background:#fff; opacity:.5; transition:all .2s;}
+.m-step.on{opacity:1; border-color:var(--green); background:var(--green-light);}
+.m-num{font-size:.72rem; font-weight:700; letter-spacing:.06em; color:var(--green); text-transform:uppercase;}
+.m-text{font-size:.84rem; color:var(--text); line-height:1.3; margin-top:.1rem;}
+
+/* step card */
+.step-card{border:1px solid var(--border); border-left:5px solid var(--green); border-radius:10px; background:#fff; padding:1rem 1.1rem; margin-bottom:1rem;}
+.step-label{font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--green); margin-bottom:.3rem;}
+.step-title{font-size:1.08rem; font-weight:700; margin-bottom:.35rem;}
+.step-body{font-size:.93rem; color:var(--muted); line-height:1.55;}
+.step-nav{display:flex; gap:.6rem; margin-top:.85rem; align-items:center;}
+.btn{border:2px solid var(--green); border-radius:8px; padding:.4rem .9rem; background:var(--green); color:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; font-weight:700; transition:all .15s;}
+.btn:hover{background:#006835;}
+.btn-ghost{background:#fff; color:var(--green);}
+.btn-ghost:hover{background:var(--green-light);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+
+/* layout */
+.panel{display:grid; grid-template-columns:1fr; gap:1rem;}
+@media(min-width:820px){.panel{grid-template-columns:1.32fr .68fr; align-items:start;}}
+
+svg{width:100%; height:auto; background:#fff; border:1px solid var(--border); border-radius:12px; display:block;}
+
+.controls{border:1px solid var(--border); border-radius:12px; padding:1rem; background:#fff;}
+.ctrl-group{margin-bottom:1rem;}
+.ctrl-label{display:block; font-size:.9rem; font-weight:700; margin-bottom:.1rem; color:var(--text);}
+.ctrl-cause{display:block; font-size:.8rem; color:var(--muted); margin-bottom:.35rem; font-style:italic;}
+.ctrl-hint{font-size:.8rem; color:var(--muted); margin-top:.15rem;}
+input[type=range]{width:100%; height:6px; margin:.25rem 0; accent-color:var(--green);}
+input[type=range]:disabled{opacity:.3;}
+.range-q{accent-color:var(--purple);}
+
+.readout{border:1px solid var(--border); border-radius:10px; padding:.75rem .85rem; background:var(--card); margin-bottom:.75rem;}
+.readout-main{font-family:'Courier New',monospace; font-size:1rem; font-weight:700; color:var(--text);}
+.readout-line{font-size:.85rem; color:var(--muted); margin-top:.3rem; min-height:1.1rem;}
+.readout-result{font-size:.95rem; font-weight:700; margin-top:.35rem; min-height:1.2rem;}
+.readout-result.profit{color:var(--green);}
+.readout-result.loss{color:var(--red);}
+.readout-result.even{color:var(--gold);}
+
+.feedback-box{border:1px solid var(--border); border-radius:10px; padding:.7rem .85rem; background:#fff; min-height:3rem;}
+.feedback-box.correct{border-color:var(--green); background:var(--green-light);}
+.feedback-box.info{border-color:var(--blue); background:var(--blue-light);}
+.feedback-box.warn{border-color:var(--gold); background:var(--gold-light);}
+.msg{font-size:.9rem; line-height:1.5;}
+
+.legend{display:flex; gap:1.1rem; flex-wrap:wrap; margin-top:.55rem; font-size:.85rem; color:var(--muted);}
+.key{display:flex; align-items:center; gap:.4rem;}
+.sw{width:24px; height:4px; border-radius:2px;}
+.sw.box{height:13px; border-radius:3px;}
+
+.note{border-left:4px solid var(--gold); padding:.5rem .75rem; background:var(--gold-light); border-radius:8px; font-size:.88rem; margin-top:.75rem; line-height:1.5;}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<h1>Interactive Graph Lab 2: Firm Profit &amp; Loss</h1>
+<p class="subtitle">A price-taking firm chooses one thing: how much to produce. Find the rule, then read profit or loss off the graph.</p>
+
+<!-- State selector (the three jump buttons) -->
+<div class="scenario-bar">
+  <span>Jump to a state:</span>
+  <button class="sc-btn active" id="stBtn0" onclick="goState(0)">Profit ($65)</button>
+  <button class="sc-btn" id="stBtn1" onclick="goState(1)">Break-even ($40)</button>
+  <button class="sc-btn" id="stBtn2" onclick="goState(2)">Loss ($30)</button>
+</div>
+
+<!-- Two-step rule bar -->
+<div class="method-bar" id="methodBar">
+  <div class="m-step" data-m="0"><div class="m-num">Step 1 — Output</div><div class="m-text">Produce where MC = price (marginal revenue)</div></div>
+  <div class="m-step" data-m="1"><div class="m-num">Step 2 — Result</div><div class="m-text">Profit or loss = (price &minus; ATC) &times; output</div></div>
+</div>
+
+<!-- Step card -->
+<div class="step-card" id="stepCard">
+  <div class="step-label" id="stepLabel"></div>
+  <div class="step-title" id="stepTitle"></div>
+  <div class="step-body" id="stepBody"></div>
+  <div class="step-nav">
+    <button class="btn btn-ghost" id="prevBtn" onclick="changeStep(-1)" disabled>&larr; Back</button>
+    <button class="btn" id="nextBtn" onclick="changeStep(1)">Next &rarr;</button>
+    <button class="btn btn-ghost" onclick="resetAll()" style="margin-left:auto;">Reset</button>
+  </div>
+</div>
+
+<div class="panel">
+  <!-- Graph -->
+  <div>
+    <svg id="firmSvg" viewBox="0 0 620 440" role="img" aria-label="Marginal cost and average total cost curves with the firm's price line and the profit or loss area">
+      <defs>
+        <marker id="arrowUp" markerWidth="9" markerHeight="9" refX="3" refY="8" orient="auto">
+          <path d="M3,0 L0,8 L6,8 z" fill="var(--gold)"/>
+        </marker>
+      </defs>
+
+      <rect x="0" y="0" width="620" height="440" fill="white"/>
+      <g id="gridLines" stroke="#eee" stroke-width="1"></g>
+
+      <!-- profit / loss rectangle (under the curves) -->
+      <g id="rectLayer"></g>
+
+      <!-- fixed cost curves -->
+      <path id="atcCurve" d="" stroke="var(--purple)" stroke-width="3.5" fill="none"/>
+      <path id="mcCurve"  d="" stroke="var(--red)"    stroke-width="3.5" fill="none"/>
+
+      <!-- price line (moves) -->
+      <line id="priceLine" x1="70" y1="0" x2="570" y2="0" stroke="#111" stroke-width="2.5"/>
+      <text id="priceLabel" x="0" y="0" font-size="12.5" fill="#111" font-family="Georgia,serif" font-weight="700"></text>
+
+      <!-- output drop line + corner dots -->
+      <line id="dropV" x1="0" y1="0" x2="0" y2="0" stroke="#555" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+      <circle id="mcDot"  cx="0" cy="0" r="5.5" fill="var(--red)"/>
+      <circle id="atcDot" cx="0" cy="0" r="5.5" fill="var(--purple)"/>
+      <g id="cueLayer"></g>
+
+      <!-- axes -->
+      <line x1="70" y1="30" x2="70" y2="370" stroke="#111" stroke-width="3"/>
+      <line x1="70" y1="370" x2="580" y2="370" stroke="#111" stroke-width="3"/>
+      <polygon points="70,18 63,38 77,38" fill="#111"/>
+      <polygon points="592,370 572,363 572,377" fill="#111"/>
+
+      <g id="tickLabels" font-size="12" fill="#555" font-family="Georgia,serif"></g>
+      <text x="14" y="200" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle" transform="rotate(-90 14 200)">Price and cost ($ per unit)</text>
+      <text x="325" y="420" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle">Quantity (units per period)</text>
+
+      <!-- curve labels -->
+      <text id="mcLabel"  x="0" y="0" font-size="14" fill="var(--red)"    font-family="Georgia,serif" font-weight="700">MC</text>
+      <text id="atcLabel" x="0" y="0" font-size="14" fill="var(--purple)" font-family="Georgia,serif" font-weight="700">ATC</text>
+
+      <!-- q* axis marker -->
+      <text id="qStarLabel" x="0" y="0" font-size="12" fill="#111" font-family="Georgia,serif" font-weight="700" text-anchor="middle"></text>
+    </svg>
+
+    <div class="legend">
+      <div class="key"><div class="sw" style="background:var(--red);"></div>Marginal cost (MC)</div>
+      <div class="key"><div class="sw" style="background:var(--purple);"></div>Average total cost (ATC)</div>
+      <div class="key"><div class="sw" style="background:#111;"></div>Price = MR</div>
+      <div class="key"><div class="sw box" style="background:rgba(0,131,69,.18);border:1px solid var(--green);"></div>Profit</div>
+      <div class="key"><div class="sw box" style="background:rgba(192,57,43,.16);border:1px solid var(--red);"></div>Loss</div>
+    </div>
+
+    <div class="note" id="conceptNote" style="display:none;"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="readout">
+      <div class="readout-main" id="readMain">Price = $65 &nbsp;|&nbsp; Output q* = 7.2</div>
+      <div class="readout-line" id="readLine">TR = $466 &nbsp; TC = $300</div>
+      <div class="readout-result profit" id="readResult">Profit = +$165</div>
+    </div>
+
+    <div class="ctrl-group" id="pGroup">
+      <label class="ctrl-label" for="pSlider">Market price</label>
+      <span class="ctrl-cause">the firm takes this as given; it cannot set its own price</span>
+      <input type="range" id="pSlider" min="24" max="90" step="1" value="65" oninput="onPrice()" aria-label="Market price"/>
+      <div class="ctrl-hint">&larr; lower price &nbsp;|&nbsp; higher price &rarr;</div>
+    </div>
+    <div class="ctrl-group" id="qGroup">
+      <label class="ctrl-label" for="qSlider" id="qLabelTxt">Output</label>
+      <span class="ctrl-cause" id="qCause">set automatically where MC = price</span>
+      <input type="range" class="range-q" id="qSlider" min="2" max="12" step="0.1" value="3.5" oninput="onQty()" aria-label="Output quantity" disabled/>
+      <div class="ctrl-hint" id="qHint">&larr; less output &nbsp;|&nbsp; more output &rarr;</div>
+    </div>
+
+    <div class="feedback-box info" id="feedbackBox">
+      <div class="msg" id="msgText">Work through the two steps using the buttons above the graph.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+// ── Coordinate system ──────────────────────────────────────────────
+// q in [0,12], cost/price in [0,100]
+const X0=70, X1=570, Y0=30, Y1=370;
+const QMAX=12, CMAX=100;
+function xQ(q){ return X0 + (clamp(q,0,QMAX)/QMAX)*(X1-X0); }
+function yC(c){ return Y1 - (clamp(c,0,CMAX)/CMAX)*(Y1-Y0); }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+// ── Cost structure ─────────────────────────────────────────────────
+// TC = q^3 - 9q^2 + 40q + 108  ->  min ATC = $40 at q=6, MC cuts ATC there
+const F=108, A=40, B=9, C=1;
+const TC =q=>F+A*q-B*q*q+C*q*q*q;
+const MC =q=>A-2*B*q+3*C*q*q;
+const ATC=q=>q>0?TC(q)/q:Infinity;
+const MIN_ATC=40, BREAKEVEN=40, MIN_AVC=19.75;
+// profit-maximizing output: rising branch of MC = P
+function qStar(P){ return (18+Math.sqrt(Math.max(0,12*P-156)))/6; }
+
+// states map to the three jump buttons
+const STATES=[
+  {name:'Profit',     price:65, step:2},
+  {name:'Break-even', price:40, step:3},
+  {name:'Loss',       price:30, step:4}
+];
+
+// ── Guided steps ───────────────────────────────────────────────────
+const steps=[
+  { label:'Setup', title:'One firm, one decision',
+    body:'The red MC and purple ATC curves are this firm\u2019s cost technology, and they do not move. The market sets the price, drawn as a flat line, because a competitive firm is a price taker. Its only choice is how much to make.',
+    price:65, qMode:'auto', rule:[], state:0,
+    concept:'The price line is also the firm\u2019s marginal revenue: selling one more unit always adds exactly the market price. That is what makes the next rule work.' },
+  { label:'Step 1', title:'Find the output where MC meets price',
+    body:'Price is fixed at $65. Drag the purple Output control and watch the readout. Below the best output the next unit adds more than it costs, so profit climbs; past it the next unit costs more than it earns, so profit falls. Profit peaks exactly where MC meets the price line.',
+    price:65, qMode:'manual', rule:[0], state:0,
+    concept:'This is the output rule for every firm, in profit or in loss: produce the quantity where marginal cost equals marginal revenue. Eyeballing total profit is imprecise; MC = MR finds it exactly.' },
+  { label:'Step 2', title:'Read the profit',
+    body:'Output now snaps to the rule automatically. Profit is the green box: its height is price minus ATC, its width is the output, so its area is total profit. Here price sits above ATC, so total revenue beats total cost.',
+    price:65, qMode:'auto', rule:[1], state:0,
+    concept:'The box is widest a little past the bottom of ATC. Maximum profit per unit is at the lowest ATC, but maximum total profit is further out, where MC = price. The firm maximizes total profit, not profit per unit.' },
+  { label:'Step 2', title:'Break-even: price at the bottom of ATC',
+    body:'Lower the price to $40, the lowest point of ATC. Output follows the rule to where MC meets price, and that point is the bottom of ATC. Price equals ATC, so the box collapses to nothing.',
+    price:40, qMode:'auto', rule:[1], state:1,
+    concept:'MR = MC = ATC here. Economic profit is zero, but that is normal profit, not failure. The firm is covering every cost, including the owner\u2019s next-best use of their time and money, so it has no reason to leave.' },
+  { label:'Step 2', title:'Loss: price below ATC',
+    body:'Drop the price to $30. Output still follows the rule, but now price sits below ATC, so the box is red: total cost exceeds total revenue. The firm is losing money on each unit.',
+    price:30, qMode:'auto', rule:[1], state:2,
+    concept:'It still produces in the short run, because $30 covers its variable cost per unit and helps pay down fixed cost. Only if price fell below average variable cost would shutting down beat producing. That comparison, and the AVC curve, is the next lab.' }
+];
+
+// ── Refs ───────────────────────────────────────────────────────────
+let stepIdx=0;
+const $=id=>document.getElementById(id);
+const pSlider=$('pSlider'), qSlider=$('qSlider');
+const readMain=$('readMain'), readLine=$('readLine'), readResult=$('readResult');
+const msgText=$('msgText'), feedbackBox=$('feedbackBox');
+const stepLabel=$('stepLabel'), stepTitle=$('stepTitle'), stepBody=$('stepBody'), conceptNote=$('conceptNote');
+const prevBtn=$('prevBtn'), nextBtn=$('nextBtn');
+const qGroup=$('qGroup'), qCause=$('qCause'), qLabelTxt=$('qLabelTxt');
+const mcCurve=$('mcCurve'), atcCurve=$('atcCurve'), mcLabel=$('mcLabel'), atcLabel=$('atcLabel');
+const priceLine=$('priceLine'), priceLabel=$('priceLabel');
+const rectLayer=$('rectLayer'), dropV=$('dropV'), mcDot=$('mcDot'), atcDot=$('atcDot'), cueLayer=$('cueLayer');
+const qStarLabel=$('qStarLabel'), gridLines=$('gridLines'), tickLabels=$('tickLabels'), methodBar=$('methodBar');
+
+// ── Static drawing ─────────────────────────────────────────────────
+function drawAxes(){
+  let g='', t='';
+  for(let q=0;q<=12;q+=2){ const x=xQ(q);
+    g+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#eee"/>`;
+    t+=`<text x="${x}" y="${Y1+16}" text-anchor="middle">${q}</text>`; }
+  for(let c=0;c<=100;c+=20){ const y=yC(c);
+    g+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#eee"/>`;
+    t+=`<text x="${X0-8}" y="${y+4}" text-anchor="end">$${c}</text>`; }
+  gridLines.innerHTML=g; tickLabels.innerHTML=t;
+}
+function pathFor(fn, qlo, qhi){
+  let pts=[];
+  for(let q=qlo; q<=qhi+1e-9; q+=0.1){
+    const c=fn(q);
+    if(c>CMAX || c<0){ if(pts.length) break; else continue; }
+    pts.push(xQ(q).toFixed(1)+' '+yC(c).toFixed(1));
+  }
+  return pts.length? 'M '+pts.join(' L ') : '';
+}
+function drawCostCurves(){
+  mcCurve.setAttribute('d', pathFor(MC, 0.3, 12));
+  atcCurve.setAttribute('d', pathFor(ATC, 1.4, 12));
+  // labels at readable spots
+  mcLabel.setAttribute('x', xQ(8.1)); mcLabel.setAttribute('y', yC(MC(8.0))-2);
+  atcLabel.setAttribute('x', xQ(11.0)); atcLabel.setAttribute('y', yC(ATC(11.0))-8);
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function render(){
+  const step=steps[stepIdx];
+  const P=parseFloat(pSlider.value);
+  const manual = step.qMode==='manual';
+  const q = manual ? parseFloat(qSlider.value) : qStar(P);
+  if(!manual) qSlider.value = clamp(q,2,12); // thumb tracks the rule
+
+  const atc=ATC(q), mc=MC(q), tr=P*q, tc=TC(q), profit=tr-tc;
+  const yp=yC(P);
+
+  // price line
+  priceLine.setAttribute('y1',yp); priceLine.setAttribute('y2',yp);
+  priceLabel.setAttribute('x', X0+6); priceLabel.setAttribute('y', yp-7);
+  priceLabel.textContent = `Price = MR = $${P.toFixed(0)}`;
+
+  // profit / loss rectangle from 0 to q, between price and ATC
+  drawRect(q, P, atc);
+
+  // drop line + corner dots
+  const xq=xQ(q);
+  dropV.setAttribute('x1',xq); dropV.setAttribute('x2',xq);
+  dropV.setAttribute('y1',yC(Math.max(P,atc))); dropV.setAttribute('y2',Y1);
+  mcDot.setAttribute('cx',xq);  mcDot.setAttribute('cy',yC(mc));
+  atcDot.setAttribute('cx',xq); atcDot.setAttribute('cy',yC(atc));
+  qStarLabel.setAttribute('x',xq); qStarLabel.setAttribute('y',Y1+32);
+  qStarLabel.textContent = manual ? `q = ${q.toFixed(1)}` : `q* = ${q.toFixed(1)}`;
+
+  // marginal cue (discovery only)
+  drawCue(manual, q, P, mc);
+
+  // readout
+  readMain.innerHTML = `Price = $${P.toFixed(0)} &nbsp;|&nbsp; ${manual?'Output q':'Output q*'} = ${q.toFixed(1)}`;
+  readLine.innerHTML = `TR = $${tr.toFixed(0)} &nbsp; TC = $${tc.toFixed(0)} &nbsp; ATC = $${atc.toFixed(0)}`;
+  const reg = regime(P, atc);
+  if(reg==='profit'){ readResult.className='readout-result profit'; readResult.textContent=`Profit = +$${profit.toFixed(0)}`; }
+  else if(reg==='loss'){ readResult.className='readout-result loss'; readResult.textContent=`Loss = \u2212$${Math.abs(profit).toFixed(0)}`; }
+  else { readResult.className='readout-result even'; readResult.textContent='Break-even: economic profit = $0'; }
+
+  // active state button by current regime
+  document.querySelectorAll('.sc-btn').forEach((b,i)=>b.classList.toggle('active', STATES[i].name.toLowerCase()===reg));
+
+  feedback(step, P, q, mc, atc, profit, reg, manual);
+}
+
+function regime(P, atc){
+  if(P-atc>0.5) return 'profit';
+  if(P-atc<-0.5) return 'loss';
+  return 'break-even';
+}
+
+function drawRect(q, P, atc){
+  if(Math.abs(P-atc)<0.4){ rectLayer.innerHTML=''; return; }
+  const x=X0, w=xQ(q)-X0;
+  const top=yC(Math.max(P,atc)), bot=yC(Math.min(P,atc));
+  const profit = P>atc;
+  const fill = profit ? 'rgba(0,131,69,.18)' : 'rgba(192,57,43,.16)';
+  const stroke = profit ? 'var(--green)' : 'var(--red)';
+  rectLayer.innerHTML =
+    `<rect x="${x}" y="${top}" width="${w}" height="${bot-top}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+}
+
+function drawCue(show, q, P, mc){
+  if(!show){ cueLayer.innerHTML=''; return; }
+  const xq=xQ(q), gap=P-mc;
+  let txt, col;
+  if(gap>1.5){ txt='next unit adds profit'; col='var(--green)'; }
+  else if(gap<-1.5){ txt='last unit lost money'; col='var(--red)'; }
+  else { txt='MC = price: profit peaks here'; col='var(--green)'; }
+  // bracket between MC dot and price line at this q
+  const yMc=yC(mc), yP=yC(P);
+  let h=`<line x1="${xq}" y1="${yMc}" x2="${xq}" y2="${yP}" stroke="${col}" stroke-width="2.5" stroke-dasharray="3 3" opacity="0.8"/>`;
+  h+=`<text x="${xq+8}" y="${(yMc+yP)/2}" font-size="11.5" fill="${col}" font-family="Georgia,serif" font-weight="700">${txt}</text>`;
+  cueLayer.innerHTML=h;
+}
+
+// ── Feedback ───────────────────────────────────────────────────────
+function feedback(step, P, q, mc, atc, profit, reg, manual){
+  if(stepIdx===0){ setFB('info','Output sits where MC meets the price line. Move to Step 1 to see why that is the profitable choice.'); return; }
+
+  if(stepIdx===1){ // discovery
+    const gap=P-mc, qs=qStar(P);
+    if(q < qs-0.3){ setFB('info',`MC is $${mc.toFixed(0)}, below the $${P.toFixed(0)} price. The next unit adds about $${gap.toFixed(0)} of profit. Increase output. Current total: ${profit>=0?'+':'\u2212'}$${Math.abs(profit).toFixed(0)}.`); return; }
+    if(q > qs+0.3){ setFB('warn',`MC is $${mc.toFixed(0)}, above the $${P.toFixed(0)} price. The last unit cost more than it earned, so you have gone too far. Total profit has slipped to +$${profit.toFixed(0)}. Ease back.`); return; }
+    setFB('correct',`MC equals the $${P.toFixed(0)} price at about q = ${q.toFixed(1)}. Total profit peaks here at +$${profit.toFixed(0)}. That is the rule: produce where MC = marginal revenue.`); return;
+  }
+
+  // read steps: react to the actual regime
+  if(reg==='profit'){
+    setFB('correct',`At $${P.toFixed(0)}, price is above ATC of $${atc.toFixed(0)}, so each of the ${q.toFixed(1)} units earns about $${(P-atc).toFixed(0)}. Total profit is the green box, +$${profit.toFixed(0)}.`);
+  } else if(reg==='loss'){
+    setFB('warn',`At $${P.toFixed(0)}, price is below ATC of $${atc.toFixed(0)}, so total cost beats total revenue by $${Math.abs(profit).toFixed(0)}, the red box. The firm still produces because $${P.toFixed(0)} covers its variable cost per unit.`);
+  } else {
+    setFB('info',`Price $${P.toFixed(0)} equals the lowest ATC, so MR = MC = ATC and the box disappears. Economic profit is zero, which is normal profit: the firm covers every cost and stays in.`);
+  }
+}
+function setFB(kind,msg){ feedbackBox.className='feedback-box '+kind; msgText.textContent=msg; }
+
+// ── Plumbing ───────────────────────────────────────────────────────
+function paintRule(active){
+  methodBar.querySelectorAll('.m-step').forEach(el=>{
+    el.classList.toggle('on', active.includes(parseInt(el.dataset.m,10)));
+  });
+}
+function loadStep(){
+  const step=steps[stepIdx];
+  stepLabel.textContent=step.label;
+  stepTitle.textContent=step.title;
+  stepBody.textContent=step.body;
+  prevBtn.disabled = stepIdx===0;
+  nextBtn.textContent = stepIdx===steps.length-1 ? 'Restart' : 'Next \u2192';
+
+  pSlider.value = step.price;
+  const manual = step.qMode==='manual';
+  qSlider.disabled = !manual;
+  qGroup.style.opacity = manual ? '1' : '0.55';
+  qLabelTxt.textContent = manual ? 'Output (you control this)' : 'Output';
+  qCause.textContent = manual ? 'drag to find the most profitable quantity' : 'set automatically where MC = price';
+  if(manual) qSlider.value = 3.5;
+
+  if(step.concept){ conceptNote.textContent=step.concept; conceptNote.style.display='block'; }
+  else conceptNote.style.display='none';
+
+  paintRule(step.rule);
+  render();
+}
+window.changeStep=function(dir){
+  if(dir===1 && stepIdx===steps.length-1){ resetAll(); return; }
+  stepIdx=clamp(stepIdx+dir,0,steps.length-1);
+  loadStep();
+};
+window.goState=function(i){ stepIdx=STATES[i].step; loadStep(); };
+window.onPrice=function(){ render(); };
+window.onQty=function(){ render(); };
+window.resetAll=function(){ stepIdx=0; loadStep(); };
+
+// ── Init ───────────────────────────────────────────────────────────
+drawAxes();
+drawCostCurves();
+loadStep();
+})();
+</script>
+
+<p style="font-size:.82rem; color:#888; margin-top:1rem; border-top:1px solid #eee; padding-top:.75rem;">
+If interactivity does not work inside Canvas, host this HTML file externally (Google Drive publish, OneDrive, GitHub Pages, or district web space) and embed it with an iframe on a Canvas Page.
+</p>
+</body>
+</html>

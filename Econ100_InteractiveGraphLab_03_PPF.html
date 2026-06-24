@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interactive Graph Lab 3: Production Possibilities Frontier</title>
+<style>
+:root{
+  --green:#008345;
+  --green-light:#e6f4ed;
+  --gold:#c8960c;
+  --gold-light:#fdf6e3;
+  --red:#c0392b;
+  --red-light:#fdf0ee;
+  --blue:#1a5cb5;
+  --blue-light:#eaf0fb;
+  --border:#d0d7de;
+  --card:#f6f8fa;
+  --text:#1a1a1a;
+  --muted:#555;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Georgia',serif; background:#fafafa; color:var(--text); max-width:980px; margin:0 auto; padding:1.25rem;}
+h1{font-size:1.55rem; font-weight:700; margin-bottom:.25rem; color:var(--green);}
+.subtitle{font-size:.95rem; color:var(--muted); margin-bottom:1rem;}
+a{color:var(--blue);}
+button:focus-visible, input:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
+
+/* scenario selector */
+.scenario-bar{display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;}
+.scenario-bar span{font-weight:700; font-size:.9rem; color:var(--muted);}
+.sc-btn{border:2px solid var(--border); border-radius:8px; padding:.4rem .9rem; background:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; transition:all .15s;}
+.sc-btn.active{border-color:var(--green); background:var(--green-light); color:var(--green); font-weight:700;}
+.sc-btn:hover{border-color:var(--green);}
+
+/* three-region key (also the example buttons in step 1) */
+.region-key{display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; margin-bottom:1rem;}
+.rk{border:1px solid var(--border); border-radius:8px; padding:.5rem .7rem; background:#fff; text-align:left; font-family:inherit; transition:all .15s;}
+.rk .rk-name{font-size:.84rem; font-weight:700;}
+.rk .rk-sub{font-size:.78rem; color:var(--muted); margin-top:.1rem;}
+.rk[data-region="inside"] .rk-name{color:var(--blue);}
+.rk[data-region="on"] .rk-name{color:var(--green);}
+.rk[data-region="outside"] .rk-name{color:var(--red);}
+.rk.clickable{cursor:pointer;}
+.rk.clickable:hover{border-color:var(--green); background:var(--card);}
+.rk.muted{opacity:.55;}
+
+/* step card */
+.step-card{border:1px solid var(--border); border-left:5px solid var(--green); border-radius:10px; background:#fff; padding:1rem 1.1rem; margin-bottom:1rem;}
+.step-label{font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--green); margin-bottom:.3rem;}
+.step-title{font-size:1.08rem; font-weight:700; margin-bottom:.35rem;}
+.step-body{font-size:.93rem; color:var(--muted); line-height:1.55;}
+.step-nav{display:flex; gap:.6rem; margin-top:.85rem; align-items:center;}
+.btn{border:2px solid var(--green); border-radius:8px; padding:.4rem .9rem; background:var(--green); color:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; font-weight:700; transition:all .15s;}
+.btn:hover{background:#006835;}
+.btn-ghost{background:#fff; color:var(--green);}
+.btn-ghost:hover{background:var(--green-light);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+
+.panel{display:grid; grid-template-columns:1fr; gap:1rem;}
+@media(min-width:820px){.panel{grid-template-columns:1.32fr .68fr; align-items:start;}}
+
+svg{width:100%; height:auto; background:#fff; border:1px solid var(--border); border-radius:12px; display:block;}
+
+.controls{border:1px solid var(--border); border-radius:12px; padding:1rem; background:#fff;}
+.grp-head{font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:.2rem 0 .4rem;}
+.grp{margin-bottom:1rem; transition:opacity .2s;}
+.ctrl-group{margin-bottom:.7rem;}
+.ctrl-label{display:block; font-size:.88rem; font-weight:700; margin-bottom:.05rem; color:var(--text);}
+.ctrl-hint{font-size:.78rem; color:var(--muted); margin-top:.1rem;}
+input[type=range]{width:100%; height:6px; margin:.25rem 0;}
+input[type=range]:disabled{opacity:.3;}
+.range-x{accent-color:var(--red);}
+.range-y{accent-color:var(--blue);}
+.range-cap{accent-color:var(--green);}
+
+.readout{border:1px solid var(--border); border-radius:10px; padding:.75rem .85rem; background:var(--card); margin-bottom:.75rem;}
+.readout-main{font-family:'Courier New',monospace; font-size:.98rem; font-weight:700; color:var(--text);}
+.readout-line{font-size:.85rem; color:var(--muted); margin-top:.3rem;}
+.readout-result{font-size:.95rem; font-weight:700; margin-top:.35rem;}
+.readout-result.inside{color:var(--blue);}
+.readout-result.on{color:var(--green);}
+.readout-result.outside{color:var(--red);}
+.readout-oc{font-size:.84rem; color:var(--gold); font-weight:700; margin-top:.3rem; min-height:1rem;}
+
+.feedback-box{border:1px solid var(--border); border-radius:10px; padding:.7rem .85rem; background:#fff; min-height:3rem;}
+.feedback-box.correct{border-color:var(--green); background:var(--green-light);}
+.feedback-box.info{border-color:var(--blue); background:var(--blue-light);}
+.feedback-box.warn{border-color:var(--gold); background:var(--gold-light);}
+.msg{font-size:.9rem; line-height:1.5;}
+
+.legend{display:flex; gap:1.1rem; flex-wrap:wrap; margin-top:.55rem; font-size:.85rem; color:var(--muted);}
+.key{display:flex; align-items:center; gap:.4rem;}
+.sw{width:24px; height:4px; border-radius:2px;}
+.sw.area{height:13px; border-radius:3px;}
+
+.note{border-left:4px solid var(--gold); padding:.5rem .75rem; background:var(--gold-light); border-radius:8px; font-size:.88rem; margin-top:.75rem; line-height:1.5;}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<h1>Interactive Graph Lab 3: Production Possibilities</h1>
+<p class="subtitle">An economy that can make drones and bicycles. See what it can produce, what it cannot yet, and how that changes.</p>
+
+<!-- Scenario selector -->
+<div class="scenario-bar">
+  <span>Walk through:</span>
+  <button class="sc-btn active" id="scBtn0" onclick="goScenario(0)">The frontier</button>
+  <button class="sc-btn" id="scBtn1" onclick="goScenario(1)">Better at drones</button>
+  <button class="sc-btn" id="scBtn2" onclick="goScenario(2)">Better at bikes</button>
+  <button class="sc-btn" id="scBtn3" onclick="goScenario(3)">Growth</button>
+</div>
+
+<!-- Three-region key (clickable in step 1) -->
+<div class="region-key" id="regionKey">
+  <button class="rk" data-region="inside" onclick="tryPoint('inside')"><div class="rk-name">Inside</div><div class="rk-sub">resources idle</div></button>
+  <button class="rk" data-region="on" onclick="tryPoint('on')"><div class="rk-name">On the line</div><div class="rk-sub">efficient</div></button>
+  <button class="rk" data-region="outside" onclick="tryPoint('outside')"><div class="rk-name">Outside</div><div class="rk-sub">not yet possible</div></button>
+</div>
+
+<!-- Step card -->
+<div class="step-card" id="stepCard">
+  <div class="step-label" id="stepLabel"></div>
+  <div class="step-title" id="stepTitle"></div>
+  <div class="step-body" id="stepBody"></div>
+  <div class="step-nav">
+    <button class="btn btn-ghost" id="prevBtn" onclick="changeStep(-1)" disabled>&larr; Back</button>
+    <button class="btn" id="nextBtn" onclick="changeStep(1)">Next &rarr;</button>
+    <button class="btn btn-ghost" onclick="resetAll()" style="margin-left:auto;">Reset</button>
+  </div>
+</div>
+
+<div class="panel">
+  <!-- Graph -->
+  <div>
+    <svg id="ppfSvg" viewBox="0 0 620 440" role="img" aria-label="Production possibilities frontier for drones and bicycles, with a production point and the attainable region shaded">
+      <rect x="0" y="0" width="620" height="440" fill="white"/>
+      <g id="gridLines" stroke="#eee" stroke-width="1"></g>
+
+      <!-- attainable region fill -->
+      <path id="fillArea" d="" fill="var(--green-light)" stroke="none"/>
+      <!-- ghost (original) frontier -->
+      <path id="ghostArc" d="" fill="none" stroke="#9aa7b2" stroke-width="2.5" stroke-dasharray="6 5"/>
+      <!-- live frontier -->
+      <path id="frontier" d="" fill="none" stroke="var(--green)" stroke-width="3.5"/>
+
+      <!-- production point drop lines -->
+      <line id="dropV" x1="0" y1="0" x2="0" y2="0" stroke="#555" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+      <line id="dropH" x1="0" y1="0" x2="0" y2="0" stroke="#555" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+
+      <!-- axes -->
+      <line x1="70" y1="30" x2="70" y2="370" stroke="#111" stroke-width="3"/>
+      <line x1="70" y1="370" x2="580" y2="370" stroke="#111" stroke-width="3"/>
+      <polygon points="70,18 63,38 77,38" fill="#111"/>
+      <polygon points="592,370 572,363 572,377" fill="#111"/>
+
+      <g id="tickLabels" font-size="12" fill="#555" font-family="Georgia,serif"></g>
+      <text x="16" y="200" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle" transform="rotate(-90 16 200)">Bicycles</text>
+      <text x="325" y="420" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle">Drones</text>
+
+      <!-- production point -->
+      <circle id="pt" cx="0" cy="0" r="7" fill="var(--green)" stroke="#fff" stroke-width="2"/>
+      <text id="ptLabel" x="0" y="0" font-size="12" font-family="Georgia,serif" font-weight="700"></text>
+    </svg>
+
+    <div class="legend">
+      <div class="key"><div class="sw area" style="background:var(--green-light); border:1px solid #bcd9c9;"></div>Can produce</div>
+      <div class="key"><div class="sw" style="background:var(--green);"></div>Frontier (limit)</div>
+      <div class="key"><div class="sw" style="background:repeating-linear-gradient(90deg,#9aa7b2 0 6px,transparent 6px 11px);"></div>Original limit</div>
+    </div>
+
+    <div class="note" id="conceptNote" style="display:none;"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="readout">
+      <div class="readout-main" id="readMain">Producing: 60 drones, 80 bikes</div>
+      <div class="readout-line" id="readLine">Limit: up to 100 drones, or 100 bikes</div>
+      <div class="readout-result on" id="readResult">On the frontier &mdash; efficient</div>
+      <div class="readout-oc" id="readOC"></div>
+    </div>
+
+    <div class="grp" id="prodGrp">
+      <div class="grp-head">Production &mdash; what you make</div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="xSlider">Drones produced</label>
+        <input type="range" class="range-x" id="xSlider" min="0" max="140" step="1" value="60" oninput="onProd()" aria-label="Drones produced"/>
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="ySlider">Bicycles produced</label>
+        <input type="range" class="range-y" id="ySlider" min="0" max="140" step="1" value="80" oninput="onProd()" aria-label="Bicycles produced"/>
+      </div>
+    </div>
+
+    <div class="grp" id="capGrp">
+      <div class="grp-head">Capacity &mdash; what you are able to make</div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="aSlider">Drone-making capacity</label>
+        <input type="range" class="range-cap" id="aSlider" min="100" max="135" step="1" value="100" oninput="onCap()" aria-label="Drone making capacity"/>
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="bSlider">Bicycle-making capacity</label>
+        <input type="range" class="range-cap" id="bSlider" min="100" max="135" step="1" value="100" oninput="onCap()" aria-label="Bicycle making capacity"/>
+      </div>
+    </div>
+
+    <div class="feedback-box info" id="feedbackBox">
+      <div class="msg" id="msgText">Use the buttons above the graph to walk through, or move the sliders to explore.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+// ── Coordinates ────────────────────────────────────────────────────
+const X0=70, X1=570, Y0=30, Y1=370, AXMAX=140;
+function xPix(X){ return X0 + (clamp(X,0,AXMAX)/AXMAX)*(X1-X0); }
+function yPix(Y){ return Y1 - (clamp(Y,0,AXMAX)/AXMAX)*(Y1-Y0); }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+// ── Model: quarter ellipse X^2/a^2 + Y^2/b^2 = 1 ───────────────────
+const A0=100, B0=100;                 // baseline capacities
+const vOf=(X,Y,a,b)=>(X*X)/(a*a)+(Y*Y)/(b*b);
+function regionOf(v){ if(v<0.96) return 'inside'; if(v<=1.04) return 'on'; return 'outside'; }
+// bikes given up per extra drone, on the frontier
+const ocOf=(X,Y,a,b)=>(b*b/(a*a))*(X/Y);
+
+// ── Guided steps (one per scenario) ────────────────────────────────
+const steps=[
+  { label:'The frontier', title:'What the economy can and cannot make',
+    body:'The shaded area is everything this economy can produce with today\u2019s resources. The green curve is its limit. Move the production sliders, or tap the three examples above, to land a point inside, on, or outside the line.',
+    a:100,b:100, x:60,y:80, prod:true, cap:false, chips:true,
+    concept:'Inside the curve, some workers or machines sit idle, so you can get more of both goods. On the curve, everything is in use, so more of one good costs some of the other. Outside is not possible yet.' },
+  { label:'Better at drones', title:'A drone technology improves',
+    body:'A new method makes drones easier to build. Drag the drone-capacity control up and watch the frontier swing out on the drone side. Keep your eye on the fixed point at 80 drones and 60 bikes.',
+    a:100,b:100, x:80,y:60, prod:false, cap:'a', chips:false,
+    concept:'The point that was on the old limit is now inside the new one. Getting better at drones freed up resources, so from that same point you could now make more drones, more bikes, or some of both. The most bikes you could make using no drones did not change, because that corner never used drones.' },
+  { label:'Better at bikes', title:'A bicycle technology improves',
+    body:'Now the bicycle side improves instead. Drag the bicycle-capacity control up and watch the frontier swing out along the bicycle axis. The fixed point is 60 drones and 80 bikes.',
+    a:100,b:100, x:60,y:80, prod:false, cap:'b', chips:false,
+    concept:'This is the mirror image of the drone case. A gain in one good still widens your real choices for both, because the resources it frees can go wherever you want them.' },
+  { label:'Growth', title:'The whole economy grows',
+    body:'More workers, more machines, better methods across the board. Drag both capacity controls up. The point at 90 drones and 90 bikes is the bundle you could not reach at the start.',
+    a:100,b:100, x:90,y:90, prod:false, cap:'ab', chips:false,
+    concept:'When both capacities rise, the entire frontier pushes outward, and bundles that were impossible before become attainable. That is what economic growth is: it turns not yet into yes.' }
+];
+
+// ── Refs ───────────────────────────────────────────────────────────
+let stepIdx=0;
+const $=id=>document.getElementById(id);
+const xSlider=$('xSlider'), ySlider=$('ySlider'), aSlider=$('aSlider'), bSlider=$('bSlider');
+const readMain=$('readMain'), readLine=$('readLine'), readResult=$('readResult'), readOC=$('readOC');
+const msgText=$('msgText'), feedbackBox=$('feedbackBox');
+const stepLabel=$('stepLabel'), stepTitle=$('stepTitle'), stepBody=$('stepBody'), conceptNote=$('conceptNote');
+const prevBtn=$('prevBtn'), nextBtn=$('nextBtn');
+const prodGrp=$('prodGrp'), capGrp=$('capGrp'), regionKey=$('regionKey');
+const fillArea=$('fillArea'), ghostArc=$('ghostArc'), frontier=$('frontier');
+const dropV=$('dropV'), dropH=$('dropH'), pt=$('pt'), ptLabel=$('ptLabel');
+const gridLines=$('gridLines'), tickLabels=$('tickLabels');
+
+// example points for the three region buttons (baseline frontier)
+const EXAMPLES={ inside:[40,40], on:[60,80], outside:[90,90] };
+
+// ── Static axes ────────────────────────────────────────────────────
+function drawAxes(){
+  let g='', t='';
+  for(let X=0;X<=140;X+=20){ const x=xPix(X);
+    g+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#eee"/>`;
+    t+=`<text x="${x}" y="${Y1+16}" text-anchor="middle">${X}</text>`; }
+  for(let Y=0;Y<=140;Y+=20){ const y=yPix(Y);
+    g+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#eee"/>`;
+    t+=`<text x="${X0-8}" y="${y+4}" text-anchor="end">${Y}</text>`; }
+  gridLines.innerHTML=g; tickLabels.innerHTML=t;
+}
+
+// sample the quarter-ellipse arc (a,0) -> (0,b)
+function arcPts(a,b){
+  const N=48, pts=[];
+  for(let i=0;i<=N;i++){ const th=(i/N)*(Math.PI/2);
+    pts.push([xPix(a*Math.cos(th)), yPix(b*Math.sin(th))]); }
+  return pts;
+}
+function arcPath(a,b){ return 'M '+arcPts(a,b).map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L '); }
+function fillPath(a,b){
+  const pts=arcPts(a,b);
+  return `M ${X0} ${Y1} `+pts.map(p=>'L '+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+` L ${X0} ${yPix(b).toFixed(1)} Z`;
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function render(){
+  const a=parseFloat(aSlider.value), b=parseFloat(bSlider.value);
+  const X=parseFloat(xSlider.value), Y=parseFloat(ySlider.value);
+
+  fillArea.setAttribute('d', fillPath(a,b));
+  frontier.setAttribute('d', arcPath(a,b));
+  const shifted=(a!==A0||b!==B0);
+  ghostArc.setAttribute('d', shifted?arcPath(A0,B0):'');
+  ghostArc.style.display = shifted?'block':'none';
+
+  // production point
+  const px=xPix(X), py=yPix(Y);
+  const v=vOf(X,Y,a,b), reg=regionOf(v);
+  const col = reg==='inside'?'var(--blue)':reg==='outside'?'var(--red)':'var(--green)';
+  pt.setAttribute('cx',px); pt.setAttribute('cy',py); pt.setAttribute('fill',col);
+  ptLabel.setAttribute('x',px+10); ptLabel.setAttribute('y',py-9); ptLabel.setAttribute('fill',col);
+  ptLabel.textContent = reg==='inside'?'idle':reg==='outside'?'not yet':'efficient';
+  dropV.setAttribute('x1',px); dropV.setAttribute('x2',px); dropV.setAttribute('y1',py); dropV.setAttribute('y2',Y1);
+  dropH.setAttribute('x1',X0); dropH.setAttribute('x2',px); dropH.setAttribute('y1',py); dropH.setAttribute('y2',py);
+
+  // readout
+  readMain.textContent = `Producing: ${X.toFixed(0)} drones, ${Y.toFixed(0)} bikes`;
+  readLine.textContent = `Limit: up to ${a.toFixed(0)} drones, or ${b.toFixed(0)} bikes`;
+  readResult.className='readout-result '+reg;
+  readResult.innerHTML = reg==='inside'?'Inside the frontier &mdash; resources idle'
+    : reg==='outside'?'Outside the frontier &mdash; not yet possible'
+    : 'On the frontier &mdash; efficient';
+  if(reg==='on'){
+    if(X>=4&&Y>=4){ readOC.textContent=`1 more drone here \u2248 give up ${ocOf(X,Y,a,b).toFixed(1)} bikes`; }
+    else if(Y<4){ readOC.textContent='Almost all drones: one more drone now costs many bikes'; }
+    else { readOC.textContent='Almost all bikes: the first drones cost very few bikes'; }
+  } else { readOC.textContent=''; }
+
+  // active scenario button by step
+  document.querySelectorAll('.sc-btn').forEach((bn,i)=>bn.classList.toggle('active', i===stepIdx));
+
+  feedback(stepIdx, a, b, X, Y, v, reg);
+}
+
+// ── Feedback ───────────────────────────────────────────────────────
+function feedback(s, a, b, X, Y, v, reg){
+  if(s===0){
+    if(reg==='inside') setFB('info','This bundle is inside the frontier, so some resources are sitting idle. You could make more drones AND more bikes at the same time. No tradeoff is needed yet.');
+    else if(reg==='outside') setFB('warn','This bundle is outside the frontier. With today\u2019s resources it simply is not possible yet. Reaching it would take growth, which is the last step.');
+    else setFB('correct',`This bundle is on the frontier, so every resource is in use. Making one more drone now means giving up about ${ocOf(X,Y,a,b).toFixed(1)} bikes. That tradeoff is the whole point of the curve.`);
+    return;
+  }
+  if(s===1){ // better at drones, point fixed (80,60)
+    if(a<=A0) setFB('info','At the moment the point sits right on the limit. Drag the drone-capacity control up to put the new technology to work.');
+    else if(reg==='on') setFB('info','Keep going. Push the drone-capacity control further out.');
+    else setFB('correct','The frontier swung out on the drone side, and the same 80,60 bundle is now inside it. Better drone technology freed up resources, so you could now make more of both goods than before.');
+    return;
+  }
+  if(s===2){ // better at bikes, point fixed (60,80)
+    if(b<=B0) setFB('info','The point sits on the limit for now. Drag the bicycle-capacity control up.');
+    else if(reg==='on') setFB('info','Keep going. Push the bicycle-capacity control further out.');
+    else setFB('correct','The frontier swung out along the bicycle axis, and the 60,80 bundle is now inside it. A gain on one side still buys you more room on both.');
+    return;
+  }
+  // growth, point fixed (90,90)
+  if(reg==='outside') setFB('warn','The 90,90 bundle is the one you could not reach earlier. It is still outside. Drag BOTH capacity controls up to grow the economy.');
+  else if(reg==='on') setFB('info','Almost there. A little more growth and the bundle moves fully inside.');
+  else setFB('correct','Both limits pushed out, the whole frontier grew, and the bundle that was impossible at the start is now attainable. That is economic growth turning not yet into yes.');
+}
+function setFB(kind,msg){ feedbackBox.className='feedback-box '+kind; msgText.textContent=msg; }
+
+// ── Plumbing ───────────────────────────────────────────────────────
+function applyChips(on){
+  regionKey.querySelectorAll('.rk').forEach(el=>{
+    el.classList.toggle('clickable', on);
+    el.classList.toggle('muted', !on);
+    el.disabled = !on;
+  });
+}
+function loadStep(){
+  const st=steps[stepIdx];
+  stepLabel.textContent=st.label;
+  stepTitle.textContent=st.title;
+  stepBody.textContent=st.body;
+  prevBtn.disabled = stepIdx===0;
+  nextBtn.textContent = stepIdx===steps.length-1 ? 'Restart' : 'Next \u2192';
+
+  aSlider.value=st.a; bSlider.value=st.b; xSlider.value=st.x; ySlider.value=st.y;
+
+  // production controls live only in step 0
+  xSlider.disabled = !st.prod; ySlider.disabled = !st.prod;
+  prodGrp.style.opacity = st.prod?'1':'0.55';
+  // capacity controls: which are live this step
+  aSlider.disabled = !(st.cap==='a'||st.cap==='ab');
+  bSlider.disabled = !(st.cap==='b'||st.cap==='ab');
+  capGrp.style.opacity = st.cap?'1':'0.55';
+
+  applyChips(st.chips);
+
+  if(st.concept){ conceptNote.textContent=st.concept; conceptNote.style.display='block'; }
+  else conceptNote.style.display='none';
+
+  render();
+}
+window.changeStep=function(dir){
+  if(dir===1 && stepIdx===steps.length-1){ resetAll(); return; }
+  stepIdx=clamp(stepIdx+dir,0,steps.length-1);
+  loadStep();
+};
+window.goScenario=function(i){ stepIdx=i; loadStep(); };
+window.tryPoint=function(reg){
+  if(stepIdx!==0) return;
+  const e=EXAMPLES[reg]; xSlider.value=e[0]; ySlider.value=e[1]; render();
+};
+window.onProd=function(){ render(); };
+window.onCap=function(){ render(); };
+window.resetAll=function(){ stepIdx=0; loadStep(); };
+
+// ── Init ───────────────────────────────────────────────────────────
+drawAxes();
+loadStep();
+})();
+</script>
+
+<p style="font-size:.82rem; color:#888; margin-top:1rem; border-top:1px solid #eee; padding-top:.75rem;">
+If interactivity does not work inside Canvas, host this HTML file externally (Google Drive publish, OneDrive, GitHub Pages, or district web space) and embed it with an iframe on a Canvas Page.
+</p>
+</body>
+</html>

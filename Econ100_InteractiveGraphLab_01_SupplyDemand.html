@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interactive Graph Lab 1: Supply and Demand</title>
+<style>
+:root{
+  --green:#008345;
+  --green-light:#e6f4ed;
+  --gold:#c8960c;
+  --gold-light:#fdf6e3;
+  --red:#c0392b;
+  --red-light:#fdf0ee;
+  --blue:#1a5cb5;
+  --blue-light:#eaf0fb;
+  --border:#d0d7de;
+  --card:#f6f8fa;
+  --text:#1a1a1a;
+  --muted:#555;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Georgia',serif; background:#fafafa; color:var(--text); max-width:980px; margin:0 auto; padding:1.25rem;}
+h1{font-size:1.55rem; font-weight:700; margin-bottom:.25rem; color:var(--green);}
+.subtitle{font-size:.95rem; color:var(--muted); margin-bottom:1rem;}
+
+a{color:var(--blue);}
+
+/* focus visibility for keyboard users */
+button:focus-visible, input:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
+
+/* scenario selector */
+.scenario-bar{display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;}
+.scenario-bar span{font-weight:700; font-size:.9rem; color:var(--muted);}
+.sc-btn{border:2px solid var(--border); border-radius:8px; padding:.4rem .9rem; background:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; transition:all .15s;}
+.sc-btn.active{border-color:var(--green); background:var(--green-light); color:var(--green); font-weight:700;}
+.sc-btn:hover{border-color:var(--green);}
+
+/* four-step method bar — the procedure students carry to every problem */
+.method-bar{display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem; margin-bottom:1rem;}
+.m-step{border:1px solid var(--border); border-radius:8px; padding:.5rem .6rem; background:#fff; opacity:.5; transition:all .2s;}
+.m-step.on{opacity:1; border-color:var(--green); background:var(--green-light);}
+.m-num{font-size:.72rem; font-weight:700; letter-spacing:.06em; color:var(--green); text-transform:uppercase;}
+.m-text{font-size:.82rem; color:var(--text); line-height:1.3; margin-top:.1rem;}
+@media(max-width:640px){.method-bar{grid-template-columns:repeat(2,1fr);}}
+
+/* step card */
+.step-card{border:1px solid var(--border); border-left:5px solid var(--green); border-radius:10px; background:#fff; padding:1rem 1.1rem; margin-bottom:1rem;}
+.step-label{font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--green); margin-bottom:.3rem;}
+.step-title{font-size:1.08rem; font-weight:700; margin-bottom:.35rem;}
+.step-body{font-size:.93rem; color:var(--muted); line-height:1.55;}
+.step-nav{display:flex; gap:.6rem; margin-top:.85rem; align-items:center;}
+.btn{border:2px solid var(--green); border-radius:8px; padding:.4rem .9rem; background:var(--green); color:#fff; cursor:pointer; font-size:.9rem; font-family:inherit; font-weight:700; transition:all .15s;}
+.btn:hover{background:#006835;}
+.btn-ghost{background:#fff; color:var(--green);}
+.btn-ghost:hover{background:var(--green-light);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+
+/* layout */
+.panel{display:grid; grid-template-columns:1fr; gap:1rem;}
+@media(min-width:820px){.panel{grid-template-columns:1.32fr .68fr; align-items:start;}}
+
+/* svg */
+svg{width:100%; height:auto; background:#fff; border:1px solid var(--border); border-radius:12px; display:block;}
+
+/* controls */
+.controls{border:1px solid var(--border); border-radius:12px; padding:1rem; background:#fff;}
+.ctrl-group{margin-bottom:1rem;}
+.ctrl-label{display:block; font-size:.9rem; font-weight:700; margin-bottom:.1rem; color:var(--text);}
+.ctrl-cause{display:block; font-size:.8rem; color:var(--muted); margin-bottom:.35rem; font-style:italic;}
+.ctrl-hint{font-size:.8rem; color:var(--muted); margin-top:.15rem;}
+input[type=range]{width:100%; height:6px; margin:.25rem 0;}
+input[type=range]:disabled{opacity:.3;}
+.range-d{accent-color:var(--blue);}
+.range-s{accent-color:var(--red);}
+
+/* consolidated readout — the single source of the numbers */
+.readout{border:1px solid var(--border); border-radius:10px; padding:.75rem .85rem; background:var(--card); margin-bottom:.75rem;}
+.readout-main{font-family:'Courier New',monospace; font-size:1.05rem; font-weight:700; color:var(--text);}
+.readout-delta{font-size:.85rem; color:var(--muted); margin-top:.3rem; min-height:1.1rem;}
+.readout-delta .up{color:var(--green); font-weight:700;}
+.readout-delta .down{color:var(--red); font-weight:700;}
+.readout-pressure{font-size:.85rem; margin-top:.3rem; color:var(--gold); font-weight:700; min-height:1.1rem;}
+
+/* feedback */
+.feedback-box{border:1px solid var(--border); border-radius:10px; padding:.7rem .85rem; background:#fff; min-height:3rem;}
+.feedback-box.correct{border-color:var(--green); background:var(--green-light);}
+.feedback-box.info{border-color:var(--blue); background:var(--blue-light);}
+.feedback-box.warn{border-color:var(--gold); background:var(--gold-light);}
+.msg{font-size:.9rem; line-height:1.5;}
+
+/* legend */
+.legend{display:flex; gap:1.1rem; flex-wrap:wrap; margin-top:.55rem; font-size:.85rem; color:var(--muted);}
+.key{display:flex; align-items:center; gap:.4rem;}
+.sw{width:24px; height:4px; border-radius:2px;}
+
+.note{border-left:4px solid var(--gold); padding:.5rem .75rem; background:var(--gold-light); border-radius:8px; font-size:.88rem; margin-top:.75rem; line-height:1.5;}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;}
+}
+</style>
+</head>
+<body>
+
+<h1>Interactive Graph Lab 1: Supply &amp; Demand</h1>
+<p class="subtitle">Use the four-step method to trace how a market moves to a new equilibrium, and watch the pressure that gets it there.</p>
+
+<!-- Scenario selector -->
+<div class="scenario-bar">
+  <span>Scenario:</span>
+  <button class="sc-btn active" id="scBtn0" onclick="loadScenario(0)">A. Input costs rise</button>
+  <button class="sc-btn" id="scBtn1" onclick="loadScenario(1)">B. Consumer incomes rise</button>
+</div>
+
+<!-- Four-step method bar -->
+<div class="method-bar" id="methodBar">
+  <div class="m-step" data-m="0"><div class="m-num">Step 1</div><div class="m-text">Which curve moves?</div></div>
+  <div class="m-step" data-m="1"><div class="m-num">Step 2</div><div class="m-text">Which direction?</div></div>
+  <div class="m-step" data-m="2"><div class="m-num">Step 3</div><div class="m-text">Shift it, see the pressure</div></div>
+  <div class="m-step" data-m="3"><div class="m-num">Step 4</div><div class="m-text">Read the new equilibrium</div></div>
+</div>
+
+<!-- Step card -->
+<div class="step-card" id="stepCard">
+  <div class="step-label" id="stepLabel"></div>
+  <div class="step-title" id="stepTitle"></div>
+  <div class="step-body" id="stepBody"></div>
+  <div class="step-nav">
+    <button class="btn btn-ghost" id="prevBtn" onclick="changeStep(-1)" disabled>&larr; Back</button>
+    <button class="btn" id="nextBtn" onclick="changeStep(1)">Next &rarr;</button>
+    <button class="btn btn-ghost" onclick="resetAll()" style="margin-left:auto;">Reset</button>
+  </div>
+</div>
+
+<div class="panel">
+  <!-- Graph -->
+  <div>
+    <svg id="sdSvg" viewBox="0 0 620 440" role="img" aria-label="Supply and demand graph showing equilibrium and the shortage at the old price">
+      <defs>
+        <marker id="arrowUp" markerWidth="9" markerHeight="9" refX="3" refY="8" orient="auto">
+          <path d="M3,0 L0,8 L6,8 z" fill="var(--gold)"/>
+        </marker>
+        <marker id="gapArrowR" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="var(--gold)"/>
+        </marker>
+        <marker id="gapArrowL" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+          <path d="M8,0 L8,6 L0,3 z" fill="var(--gold)"/>
+        </marker>
+      </defs>
+
+      <rect x="0" y="0" width="620" height="440" fill="white"/>
+
+      <!-- grid -->
+      <g id="gridLines" stroke="#eee" stroke-width="1"></g>
+
+      <!-- ghost (original) curves -->
+      <g id="ghostCurves" fill="none" stroke-width="2.5"></g>
+
+      <!-- pressure layer: old price line + shortage/surplus band -->
+      <g id="pressureLayer"></g>
+
+      <!-- live curves -->
+      <path id="dCurve" d="" stroke="var(--blue)" stroke-width="3.5" fill="none"/>
+      <path id="sCurve" d="" stroke="var(--red)" stroke-width="3.5" fill="none"/>
+
+      <!-- equilibrium drop lines -->
+      <line id="dropV" x1="0" y1="0" x2="0" y2="0" stroke="#555" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+      <line id="dropH" x1="0" y1="0" x2="0" y2="0" stroke="#555" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55"/>
+
+      <!-- resolve arrow (step 4) -->
+      <g id="resolveLayer"></g>
+
+      <!-- axes -->
+      <line x1="70" y1="30" x2="70" y2="370" stroke="#111" stroke-width="3"/>
+      <line x1="70" y1="370" x2="580" y2="370" stroke="#111" stroke-width="3"/>
+      <polygon points="70,18 63,38 77,38" fill="#111"/>
+      <polygon points="592,370 572,363 572,377" fill="#111"/>
+
+      <g id="tickLabels" font-size="12" fill="#555" font-family="Georgia,serif"></g>
+
+      <text x="14" y="200" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle" transform="rotate(-90 14 200)">Price ($)</text>
+      <text x="325" y="420" font-size="14" fill="#111" font-family="Georgia,serif" text-anchor="middle">Quantity (units)</text>
+
+      <!-- ghost equilibrium A -->
+      <circle id="ghostDot" cx="0" cy="0" r="6" fill="#fff" stroke="#888" stroke-width="2"/>
+      <text id="ghostLabel" x="0" y="0" font-size="12" fill="#888" font-family="Georgia,serif" font-weight="700">A</text>
+
+      <!-- curve labels -->
+      <text id="dLabel" x="0" y="0" font-size="14" fill="var(--blue)" font-family="Georgia,serif" font-weight="700">D</text>
+      <text id="sLabel" x="0" y="0" font-size="14" fill="var(--red)" font-family="Georgia,serif" font-weight="700">S</text>
+
+      <!-- live equilibrium -->
+      <circle id="eqDot" cx="0" cy="0" r="6.5" fill="#111"/>
+      <text id="eqLabel" x="0" y="0" font-size="12" fill="#111" font-family="Georgia,serif" font-weight="700"></text>
+    </svg>
+
+    <div class="legend">
+      <div class="key"><div class="sw" style="background:var(--blue);"></div>Demand</div>
+      <div class="key"><div class="sw" style="background:var(--red);"></div>Supply</div>
+      <div class="key"><div class="sw" style="background:repeating-linear-gradient(90deg,#888 0 6px,transparent 6px 11px);"></div>Original curve</div>
+    </div>
+
+    <div class="note" id="conceptNote" style="display:none;"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="readout">
+      <div class="readout-main" id="readMain">P* = $50 &nbsp;|&nbsp; Q* = 200</div>
+      <div class="readout-delta" id="readDelta"></div>
+      <div class="readout-pressure" id="readPressure"></div>
+    </div>
+
+    <div class="ctrl-group" id="dGroup">
+      <label class="ctrl-label" for="dSlider" id="dLabelTxt">Demand</label>
+      <span class="ctrl-cause" id="dCause">shifts with buyer income and tastes</span>
+      <input type="range" class="range-d" id="dSlider" min="-80" max="80" step="1" value="0" oninput="onSlider()" aria-label="Demand shifter"/>
+      <div class="ctrl-hint" id="dHint">&larr; demand falls &nbsp;|&nbsp; demand rises &rarr;</div>
+    </div>
+    <div class="ctrl-group" id="sGroup">
+      <label class="ctrl-label" for="sSlider" id="sLabelTxt">Supply</label>
+      <span class="ctrl-cause" id="sCause">shifts with input costs and technology</span>
+      <input type="range" class="range-s" id="sSlider" min="-80" max="80" step="1" value="0" oninput="onSlider()" aria-label="Supply shifter"/>
+      <div class="ctrl-hint" id="sHint">&larr; supply falls &nbsp;|&nbsp; supply rises &rarr;</div>
+    </div>
+
+    <div class="feedback-box info" id="feedbackBox">
+      <div class="msg" id="msgText">Work through the four steps using the buttons above the graph.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+// ── Coordinate system ──────────────────────────────────────────────
+// Model: Q in [0,400], P in [0,100]. Pixel: x 70..570, y 30..370 (inverted)
+const X0=70, X1=570, Y0=30, Y1=370;
+function xP(Q){ return X0 + (clamp(Q,0,400)/400)*(X1-X0); }
+function yP(P){ return Y1 - (clamp(P,0,100)/100)*(Y1-Y0); }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+// ── Baseline curve parameters ──────────────────────────────────────
+// Demand: P = aD - bD*Q   Supply: P = aS + bS*Q
+// Baseline eq A: 90-0.2Q = 20+0.15Q -> Q=200, P=50
+const bD=0.2, bS=0.15, aD0=90, aS0=20;
+const P0=50, Q0=200; // equilibrium A (the "old price" used for pressure)
+
+function solveEq(aD, aS){
+  const Q=(aD-aS)/(bD+bS);
+  const P=aS+bS*Q;
+  return {Q:clamp(Q,0,400), P:clamp(P,0,100)};
+}
+
+// ── Scenarios ──────────────────────────────────────────────────────
+// Each scenario walks the same four-step method. No long-run fiction:
+// the new equilibrium is the answer.
+const scenarios = [
+  {
+    name:"A. Input costs rise",
+    active:"S",                 // which curve the student moves
+    targetS:-18, targetD:0,     // canonical shift used on the read screen
+    dCause:"unchanged here; buyer income and tastes did not move",
+    sCause:"driven by input costs in this scenario",
+    steps:[
+      { label:"Start", title:"The market at rest",
+        body:"The market clears at point A: price $50, quantity 200. Quantity demanded equals quantity supplied, so there is no pressure on price. This is the baseline you will compare against.",
+        method:[], dVal:0, sVal:0, dLock:true, sLock:true, gap:false, resolve:false,
+        concept:null },
+      { label:"Steps 1 and 2", title:"Which curve moves, and which way?",
+        body:"Input costs across the industry rise: labor, materials, energy all cost more. Decide which curve this affects and which direction it shifts before you touch anything.",
+        method:[0,1], dVal:0, sVal:0, dLock:true, sLock:true, gap:false, resolve:false,
+        concept:"Input costs are a supply shifter. Higher costs mean producers offer less at every price, so supply shifts left. Demand does not move, because buyer income and tastes are unchanged." },
+      { label:"Step 3", title:"Shift supply left, and watch the pressure",
+        body:"Drag the Supply control to the left. Keep your eye on the old $50 price line. At that price, sellers now offer less than buyers want, and that shortage is the force that pushes the price up.",
+        method:[2], dVal:0, sVal:null, dLock:true, sLock:false, gap:true, resolve:false,
+        concept:"A shortage means quantity demanded is greater than quantity supplied at the current price. Unsatisfied buyers bid the price up, and rising price both pulls quantity supplied up and trims quantity demanded until the gap closes." },
+      { label:"Step 4", title:"Read the new equilibrium",
+        body:"Price has risen until the market clears again. Compare the new point to A. A permanent rise in input costs leaves the market at a higher price and a lower quantity. There is no automatic drift back; this is the result.",
+        method:[3], dVal:0, sVal:-18, dLock:true, sLock:true, gap:true, resolve:true,
+        concept:"Higher price, lower quantity is the standard response to a supply decrease. The price rose by exactly enough to erase the shortage that existed at $50." }
+    ]
+  },
+  {
+    name:"B. Consumer incomes rise",
+    active:"D",
+    targetS:0, targetD:20,
+    dCause:"driven by consumer income in this scenario (a normal good)",
+    sCause:"unchanged here; production costs did not move",
+    steps:[
+      { label:"Start", title:"The market at rest",
+        body:"The market clears at point A: price $50, quantity 200. This is the baseline, before any change in household income.",
+        method:[], dVal:0, sVal:0, dLock:true, sLock:true, gap:false, resolve:false,
+        concept:null },
+      { label:"Steps 1 and 2", title:"Which curve moves, and which way?",
+        body:"Household incomes rise across the market, and this is a normal good. Decide which curve this affects and which direction it shifts before you move anything.",
+        method:[0,1], dVal:0, sVal:0, dLock:true, sLock:true, gap:false, resolve:false,
+        concept:"Income is a demand shifter. For a normal good, higher income means buyers want more at every price, so demand shifts right. Supply does not move, because production costs are unchanged." },
+      { label:"Step 3", title:"Shift demand right, and watch the pressure",
+        body:"Drag the Demand control to the right. Watch the old $50 price line. At that price, buyers now want more than sellers are offering, and that shortage is what pushes the price up.",
+        method:[2], dVal:null, sVal:0, dLock:false, sLock:true, gap:true, resolve:false,
+        concept:"A shortage means quantity demanded exceeds quantity supplied at the current price. Competition among buyers bids the price up until quantity demanded and quantity supplied meet again." },
+      { label:"Step 4", title:"Read the new equilibrium",
+        body:"Price has risen until the market clears. Compare the new point to A. A rise in demand leaves the market at a higher price and a higher quantity.",
+        method:[3], dVal:20, sVal:0, dLock:true, sLock:true, gap:true, resolve:true,
+        concept:"Higher price and higher quantity together is the signature of a demand increase. The price rose by exactly enough to erase the shortage that existed at $50." }
+    ]
+  }
+];
+
+// ── State + element refs ───────────────────────────────────────────
+let scenIdx=0, stepIdx=0;
+const $=id=>document.getElementById(id);
+const dSlider=$('dSlider'), sSlider=$('sSlider');
+const readMain=$('readMain'), readDelta=$('readDelta'), readPressure=$('readPressure');
+const msgText=$('msgText'), feedbackBox=$('feedbackBox');
+const stepLabel=$('stepLabel'), stepTitle=$('stepTitle'), stepBody=$('stepBody'), conceptNote=$('conceptNote');
+const prevBtn=$('prevBtn'), nextBtn=$('nextBtn');
+const dGroup=$('dGroup'), sGroup=$('sGroup'), dCause=$('dCause'), sCause=$('sCause');
+const dCurve=$('dCurve'), sCurve=$('sCurve');
+const eqDot=$('eqDot'), eqLabel=$('eqLabel'), dropV=$('dropV'), dropH=$('dropH');
+const ghostDot=$('ghostDot'), ghostLabel=$('ghostLabel');
+const dLabel=$('dLabel'), sLabel=$('sLabel');
+const ghostCurves=$('ghostCurves'), pressureLayer=$('pressureLayer'), resolveLayer=$('resolveLayer');
+const tickLabels=$('tickLabels'), gridLines=$('gridLines'), methodBar=$('methodBar');
+
+// ── Axes ───────────────────────────────────────────────────────────
+function drawAxes(){
+  let g='', t='';
+  [0,100,200,300,400].forEach(Q=>{
+    const x=xP(Q);
+    g+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#eee"/>`;
+    t+=`<text x="${x}" y="${Y1+16}" text-anchor="middle">${Q}</text>`;
+  });
+  [0,20,40,60,80,100].forEach(P=>{
+    const y=yP(P);
+    g+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#eee"/>`;
+    t+=`<text x="${X0-8}" y="${y+4}" text-anchor="end">$${P}</text>`;
+  });
+  gridLines.innerHTML=g; tickLabels.innerHTML=t;
+}
+
+function drawGhostCurves(){
+  // original D and S (baseline), faint dashed
+  const dP0=aD0, dP400=aD0-bD*400;
+  const sP0=aS0, sP400=aS0+bS*400;
+  ghostCurves.innerHTML=
+    `<path d="M ${xP(0)} ${yP(dP0)} L ${xP(400)} ${yP(dP400)}" stroke="#9fb4d6" stroke-dasharray="6 5"/>`+
+    `<path d="M ${xP(0)} ${yP(sP0)} L ${xP(400)} ${yP(sP400)}" stroke="#d6a39f" stroke-dasharray="6 5"/>`;
+  // ghost equilibrium A
+  ghostDot.setAttribute('cx',xP(Q0)); ghostDot.setAttribute('cy',yP(P0));
+  ghostLabel.setAttribute('x',xP(Q0)+9); ghostLabel.setAttribute('y',yP(P0)-9);
+}
+
+// ── Main update ────────────────────────────────────────────────────
+function update(){
+  const step=scenarios[scenIdx].steps[stepIdx];
+  const d=parseFloat(dSlider.value), s=parseFloat(sSlider.value);
+  const aD=aD0+d;          // demand intercept
+  const aS=aS0-s;          // right = more supply = lower intercept
+  const shifted=(Math.abs(d)>0.5||Math.abs(s)>0.5);
+
+  // live curves
+  dCurve.setAttribute('d',`M ${xP(0)} ${yP(aD)} L ${xP(400)} ${yP(aD-bD*400)}`);
+  dLabel.setAttribute('x',xP(355)); dLabel.setAttribute('y',yP(aD-bD*355)-8);
+  sCurve.setAttribute('d',`M ${xP(0)} ${yP(aS)} L ${xP(400)} ${yP(aS+bS*400)}`);
+  sLabel.setAttribute('x',xP(355)); sLabel.setAttribute('y',yP(aS+bS*355)+16);
+
+  // equilibrium
+  const eq=solveEq(aD,aS);
+  const ex=xP(eq.Q), ey=yP(eq.P);
+  eqDot.setAttribute('cx',ex); eqDot.setAttribute('cy',ey);
+  eqLabel.setAttribute('x',ex+9); eqLabel.setAttribute('y',ey-9);
+  eqLabel.textContent = shifted ? "B" : "A";
+  eqDot.style.display = shifted ? 'block':'none';   // at baseline, ghost A stands in
+  eqLabel.style.display = shifted ? 'block':'none';
+  dropV.setAttribute('x1',ex); dropV.setAttribute('x2',ex); dropV.setAttribute('y1',ey); dropV.setAttribute('y2',Y1);
+  dropH.setAttribute('x1',X0); dropH.setAttribute('x2',ex); dropH.setAttribute('y1',ey); dropH.setAttribute('y2',ey);
+  const showDrop = shifted;
+  dropV.style.display = showDrop?'block':'none';
+  dropH.style.display = showDrop?'block':'none';
+
+  // pressure at the old price P0
+  const Qd0=(aD-P0)/bD;          // qty demanded at $50
+  const Qs0=(P0-aS)/bS;          // qty supplied at $50
+  const gap=Qd0-Qs0;            // + = shortage, - = surplus
+  drawPressure(step.gap && shifted, Qd0, Qs0, gap, !step.resolve);
+
+  // resolve arrow (step 4)
+  drawResolve(step.resolve && shifted, eq);
+
+  // readout
+  readMain.innerHTML=`P* = $${eq.P.toFixed(0)} &nbsp;|&nbsp; Q* = ${eq.Q.toFixed(0)}`;
+  if(shifted){
+    const dP=eq.P-P0, dQ=eq.Q-Q0;
+    const pTag=dP>=0?`<span class="up">&uarr; +$${dP.toFixed(0)}</span>`:`<span class="down">&darr; $${dP.toFixed(0)}</span>`;
+    const qTag=dQ>=0?`<span class="up">&uarr; +${dQ.toFixed(0)}</span>`:`<span class="down">&darr; ${dQ.toFixed(0)}</span>`;
+    readDelta.innerHTML=`vs. A: price ${pTag}, quantity ${qTag}`;
+  } else { readDelta.innerHTML=''; }
+  if(step.gap && shifted && Math.abs(gap)>=1){
+    const kind=gap>0?'Shortage':'Surplus';
+    readPressure.innerHTML=`At $50: ${kind.toLowerCase()} of ${Math.abs(gap).toFixed(0)} units`;
+  } else { readPressure.innerHTML=''; }
+
+  giveFeedback(step,d,s,eq,gap,Qd0,Qs0);
+}
+
+function drawPressure(show, Qd0, Qs0, gap, showLabel){
+  if(!show || Math.abs(gap)<1){ pressureLayer.innerHTML=''; return; }
+  const y=yP(P0);
+  const xa=xP(Math.min(Qs0,Qd0)), xb=xP(Math.max(Qs0,Qd0));
+  const mid=(xa+xb)/2;
+  const kind = gap>0 ? 'Shortage':'Surplus';
+  let h='';
+  // old price line across the plot
+  h+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#888" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  h+=`<text x="${X1-2}" y="${y-6}" text-anchor="end" font-size="11" fill="#888" font-family="Georgia,serif">old price $50</text>`;
+  // shaded band between Qs and Qd at the old price
+  h+=`<rect x="${xa}" y="${y-9}" width="${xb-xa}" height="18" fill="var(--gold)" fill-opacity="0.16"/>`;
+  // end ticks
+  h+=`<line x1="${xa}" y1="${y-10}" x2="${xa}" y2="${y+10}" stroke="var(--gold)" stroke-width="2"/>`;
+  h+=`<line x1="${xb}" y1="${y-10}" x2="${xb}" y2="${y+10}" stroke="var(--gold)" stroke-width="2"/>`;
+  // double arrow
+  h+=`<line x1="${xa+3}" y1="${y}" x2="${xb-3}" y2="${y}" stroke="var(--gold)" stroke-width="2" marker-start="url(#gapArrowL)" marker-end="url(#gapArrowR)"/>`;
+  // numeric label (suppressed on the resolve frame, where it lives in the readout)
+  if(showLabel){
+    h+=`<text x="${mid}" y="${y-15}" text-anchor="middle" font-size="13" fill="#b07d00" font-family="Georgia,serif" font-weight="700">${kind}: ${Math.abs(gap).toFixed(0)} units</text>`;
+  }
+  pressureLayer.innerHTML=h;
+}
+
+function drawResolve(show, eq){
+  if(!show){ resolveLayer.innerHTML=''; return; }
+  const x=xP(eq.Q);
+  const yOld=yP(P0), yNew=yP(eq.P);
+  let h='';
+  // upward arrow from old price to new price along q*
+  h+=`<line x1="${x}" y1="${yOld}" x2="${x}" y2="${yNew+4}" stroke="var(--gold)" stroke-width="2.5" marker-end="url(#arrowUp)"/>`;
+  h+=`<text x="${x+10}" y="${(yOld+yNew)/2}" font-size="11.5" fill="#b07d00" font-family="Georgia,serif" font-weight="700">price rises to clear it</text>`;
+  resolveLayer.innerHTML=h;
+}
+
+// ── Feedback anchored to the actual outcome, not slider thresholds ──
+function giveFeedback(step,d,s,eq,gap,Qd0,Qs0){
+  const active=scenarios[scenIdx].active;
+
+  if(stepIdx===0){ setFB('info', step.title==='The market at rest'
+      ? "At A, quantity demanded equals quantity supplied, so price is stable. Note $50 and 200."
+      : ""); return; }
+  if(stepIdx===1){ setFB('info',"Decide the curve and direction in your head, then press Next to test it."); return; }
+
+  if(stepIdx===2){
+    if(active==='S'){
+      if(s>-4){ setFB('info',"Drag the Supply control to the left. Higher input costs mean less is supplied at every price."); return; }
+      setFB('correct',`Supply has shifted left. At the old $50 price, buyers still want ${Qd0.toFixed(0)} but sellers now offer only ${Qs0.toFixed(0)}, a shortage of ${gap.toFixed(0)}. That excess demand bids the price up to about $${eq.P.toFixed(0)}, where the market clears at ${eq.Q.toFixed(0)} units.`);
+      return;
+    } else {
+      if(d<4){ setFB('info',"Drag the Demand control to the right. Higher income raises demand for a normal good at every price."); return; }
+      setFB('correct',`Demand has shifted right. At the old $50 price, buyers now want ${Qd0.toFixed(0)} while sellers offer ${Qs0.toFixed(0)}, a shortage of ${gap.toFixed(0)}. Competition among buyers pushes the price up to about $${eq.P.toFixed(0)}, clearing at ${eq.Q.toFixed(0)} units.`);
+      return;
+    }
+  }
+
+  if(stepIdx===3){
+    const dP=eq.P-P0, dQ=eq.Q-Q0;
+    const dir = active==='S'
+      ? `Supply fell, so price rose to $${eq.P.toFixed(0)} and quantity fell to ${eq.Q.toFixed(0)}.`
+      : `Demand rose, so price rose to $${eq.P.toFixed(0)} and quantity rose to ${eq.Q.toFixed(0)}.`;
+    setFB('correct',`${dir} The price climbed by $${Math.abs(dP).toFixed(0)} from the old level, just enough to erase the shortage at $50. That new point is the answer.`);
+    return;
+  }
+}
+function setFB(kind,msg){ feedbackBox.className='feedback-box '+kind; msgText.textContent=msg; }
+
+// ── Step + scenario plumbing ───────────────────────────────────────
+function paintMethodBar(active){
+  methodBar.querySelectorAll('.m-step').forEach(el=>{
+    el.classList.toggle('on', active.includes(parseInt(el.dataset.m,10)));
+  });
+}
+
+function loadStep(){
+  const sc=scenarios[scenIdx], step=sc.steps[stepIdx];
+  stepLabel.textContent=step.label;
+  stepTitle.textContent=step.title;
+  stepBody.textContent=step.body;
+  prevBtn.disabled = stepIdx===0;
+  nextBtn.textContent = stepIdx===sc.steps.length-1 ? 'Restart' : 'Next \u2192';
+
+  if(step.dVal!==null) dSlider.value=step.dVal;
+  if(step.sVal!==null) sSlider.value=step.sVal;
+  dSlider.disabled=step.dLock; sSlider.disabled=step.sLock;
+
+  // dim the inactive control so attention lands on the live one
+  dGroup.style.opacity = step.dLock?'0.55':'1';
+  sGroup.style.opacity = step.sLock?'0.55':'1';
+
+  if(step.concept){ conceptNote.textContent=step.concept; conceptNote.style.display='block'; }
+  else conceptNote.style.display='none';
+
+  paintMethodBar(step.method);
+  update();
+}
+
+window.changeStep=function(dir){
+  const sc=scenarios[scenIdx];
+  if(dir===1 && stepIdx===sc.steps.length-1){ resetAll(); return; }
+  stepIdx=clamp(stepIdx+dir,0,sc.steps.length-1);
+  loadStep();
+};
+
+window.loadScenario=function(idx){
+  scenIdx=idx; stepIdx=0;
+  document.querySelectorAll('.sc-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  const sc=scenarios[idx];
+  dCause.textContent=sc.dCause; sCause.textContent=sc.sCause;
+  dSlider.value=0; sSlider.value=0;
+  loadStep();
+};
+
+window.onSlider=function(){ update(); };
+
+window.resetAll=function(){
+  stepIdx=0; dSlider.value=0; sSlider.value=0; loadStep();
+};
+
+// ── Init ───────────────────────────────────────────────────────────
+drawAxes();
+drawGhostCurves();
+loadScenario(0);
+
+})();
+</script>
+
+<p style="font-size:.82rem; color:#888; margin-top:1rem; border-top:1px solid #eee; padding-top:.75rem;">
+If interactivity does not work inside Canvas, host this HTML file externally (Google Drive publish, OneDrive, GitHub Pages, or district web space) and embed it with an iframe on a Canvas Page.
+</p>
+</body>
+</html>
