@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AD/AS Explorer — ECON 100</title>
+<style>
+  :root{
+    --ink:#1c2421; --ink-soft:#4a544f; --line:#c9cfca; --bg:#f6f5f0; --panel:#ffffff;
+    --green:#0b6b41; --green-d:#085233; --gold:#caa23a;
+    --ad:#1452a8; --sras:#bf3d1f; --lras:#3a423e;
+    --infl:#e7b15a; --rec:#6f9bd1;
+    --focus:#0b6b41;
+    --shadow:0 1px 2px rgba(20,30,25,.06),0 4px 14px rgba(20,30,25,.06);
+  }
+  *{box-sizing:border-box}
+  html{font-size:17px}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
+  header h1{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:1.9rem;line-height:1.15;margin:0 0 6px;color:var(--green-d);letter-spacing:.2px;
+  }
+  header p.lede{margin:0 0 4px;color:var(--ink-soft);max-width:62ch}
+  .layout{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;margin-top:22px;align-items:start}
+  @media (max-width:840px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  .diagram-card{padding:10px 10px 4px}
+  svg{display:block;width:100%;height:auto}
+  .readout{padding:14px 16px 16px;margin-top:0}
+  .readout h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft);margin:2px 0 8px}
+  .state{font-size:1.06rem;margin:0;min-height:3.2em}
+  .state .tag{font-weight:700}
+  .state .infl{color:#9a6a12}
+  .state .rec{color:#2c5a96}
+  .state .full{color:var(--green-d)}
+  .controls{padding:16px 16px 18px}
+  .controls h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft);margin:0 0 10px}
+  .grp{margin-bottom:16px}
+  .grp > .label{font-weight:600;font-size:.92rem;margin:0 0 7px;color:var(--ink)}
+  .btnrow{display:flex;flex-wrap:wrap;gap:8px}
+  button{
+    font:inherit;font-size:.92rem;cursor:pointer;border-radius:9px;border:1px solid var(--line);
+    background:#fbfbf9;color:var(--ink);padding:9px 12px;line-height:1.2;min-height:42px;
+    transition:background .12s,border-color .12s,transform .04s;
+  }
+  button:hover{background:#f0efe9;border-color:#b4bbb5}
+  button:active{transform:translateY(1px)}
+  button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  button[disabled]{opacity:.42;cursor:not-allowed}
+  .btn-primary{background:var(--green);border-color:var(--green-d);color:#fff;font-weight:600}
+  .btn-primary:hover{background:var(--green-d)}
+  .btn-primary[disabled]{background:#9bb6a8;border-color:#9bb6a8;color:#eef4f0}
+  .btn-ghost{background:#fff}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;border-radius:0;background:#fff;min-height:38px;padding:7px 14px}
+  .seg button[aria-pressed="true"]{background:var(--green);color:#fff;font-weight:600}
+  .seg button + button{border-left:1px solid var(--line)}
+  .hint{font-size:.86rem;color:var(--ink-soft);margin:8px 0 0}
+  details.numbers{margin-top:6px;border-top:1px solid var(--line);padding-top:10px}
+  details.numbers summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--green-d)}
+  details.numbers summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  table.nums{border-collapse:collapse;margin-top:10px;font-size:.9rem;width:100%}
+  table.nums th,table.nums td{border:1px solid var(--line);padding:5px 9px;text-align:left}
+  table.nums th{background:#eef2ef;font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;padding:4px 8px 10px;font-size:.86rem;color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:22px;height:0;border-top-width:3px;border-top-style:solid;display:inline-block}
+  .footnote{margin-top:26px;font-size:.86rem;color:var(--ink-soft);max-width:74ch}
+  .footnote code{background:#ecebe4;padding:1px 5px;border-radius:4px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AD/AS Explorer</h1>
+    <p class="lede">Shift a curve and watch the economy move. The short run jumps to a new crossing. The long run slides back to the vertical line. Same model behind every graph in your reference guide.</p>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT: diagram + readout -->
+    <div>
+      <div class="card diagram-card">
+        <svg id="plot" viewBox="0 0 620 470" role="img"
+             aria-label="Aggregate demand and aggregate supply diagram. Price level is on the vertical axis, real GDP on the horizontal axis. The current state is written in the status text below the diagram.">
+          <!-- filled by script -->
+        </svg>
+        <div class="legend" aria-hidden="true">
+          <span><i class="swatch" style="border-top-color:var(--ad)"></i>AD (aggregate demand)</span>
+          <span><i class="swatch" style="border-top-color:var(--sras)"></i>SRAS (short-run supply)</span>
+          <span><i class="swatch" style="border-top-color:var(--lras);border-top-style:dashed"></i>LRAS (potential output)</span>
+        </div>
+      </div>
+
+      <div class="card readout">
+        <h2>What is happening</h2>
+        <p class="state" id="state" aria-live="polite" role="status">The economy starts at full employment. Output sits on the potential line. Choose a shock to begin.</p>
+        <details class="numbers">
+          <summary>Show the numbers</summary>
+          <table class="nums" aria-label="Current values">
+            <tbody id="numsBody"></tbody>
+          </table>
+        </details>
+      </div>
+    </div>
+
+    <!-- RIGHT: controls -->
+    <div class="card controls">
+      <h2>Controls</h2>
+
+      <div class="grp">
+        <p class="label" id="modeLabel">Setting</p>
+        <div class="seg" role="group" aria-labelledby="modeLabel">
+          <button id="modeStd" aria-pressed="true">Standard AD/AS</button>
+          <button id="modeFiscal" aria-pressed="false">Fiscal policy</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <p class="label">Step 1: apply a shock</p>
+        <div class="btnrow" id="shockRow">
+          <button data-shock="ad-up"   id="adUp">Increase demand</button>
+          <button data-shock="ad-down" id="adDown">Decrease demand</button>
+          <button data-shock="sras-up">Costs fall (SRAS right)</button>
+          <button data-shock="sras-down">Costs rise (SRAS left)</button>
+        </div>
+        <p class="hint" id="shockHint">A shock moves one curve. The dot jumps to the new short-run crossing.</p>
+      </div>
+
+      <div class="grp">
+        <p class="label">Step 2: let time pass</p>
+        <div class="btnrow">
+          <button class="btn-primary" id="longRun" disabled>Let the long run play out</button>
+        </div>
+        <p class="hint">Available when the economy is in a gap. Wages adjust, SRAS shifts, output returns to the line.</p>
+      </div>
+
+      <div class="grp">
+        <p class="label">Scenarios</p>
+        <div class="btnrow">
+          <button class="btn-ghost" data-scn="boom">Demand boom</button>
+          <button class="btn-ghost" data-scn="slump">Demand slump</button>
+          <button class="btn-ghost" data-scn="oil">Supply shock</button>
+          <button class="btn-ghost" data-scn="contract">Contractionary fiscal policy</button>
+        </div>
+        <p class="hint">Each scenario sets up the short run. You press Step 2 to finish it.</p>
+      </div>
+
+      <div class="grp" style="margin-bottom:0">
+        <div class="btnrow">
+          <button id="reset">Reset to full employment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Built for ECON 100. To use in Canvas, upload this file under <code>Files</code> and link to it, or host it and add a link. Canvas removes scripts from normal pages, so it runs from a direct link rather than pasted into a page. Works with keyboard and screen readers, and the status text always describes the diagram in words.
+  </p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var ANIM = prefersReduced ? 0 : 720;
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("plot");
+
+  // ---- plot window ----
+  var Ymin=40, Ymax=160, Pmin=40, Pmax=160;
+  var padL=64, padR=118, padT=26, padB=52;
+  var W=620, H=470, plotW=W-padL-padR, plotH=H-padT-padB;
+  function sx(Y){ return padL + (Y-Ymin)/(Ymax-Ymin)*plotW; }
+  function sy(P){ return padT + (Pmax-P)/(Pmax-Pmin)*plotH; }
+
+  // ---- model: AD  P = adI - adS*Y ;  SRAS P = srI + srS*Y ----
+  var Ystar=100, adS=1.0, srS=1.0;
+  var base = { adI:200, srI:0 };          // full-employment baseline -> eq (100,100)
+  var cur, start, mode="standard", hasShock=false, lastShock=null;
+
+  function eq(adI, srI){
+    var Y=(adI - srI)/(adS+srS);
+    var P=srI + srS*Y;
+    return {Y:Y, P:P};
+  }
+  function gapType(Y){
+    if(Y > Ystar+0.4) return "inflationary";
+    if(Y < Ystar-0.4) return "recessionary";
+    return "full";
+  }
+
+  function resetModel(){
+    cur = {adI:base.adI, srI:base.srI};
+    start = {adI:base.adI, srI:base.srI};
+    hasShock=false; lastShock=null;
+    document.getElementById("longRun").disabled = true;
+    render(cur, start);
+    setState(
+      "The economy starts at full employment. Output sits on the potential line. Choose a shock or a scenario to begin.",
+      eq(cur.adI,cur.srI), "full", null
+    );
+  }
+
+  // ---- line clipping to window, returns polyline points + right-most visible point ----
+  function clip(kind, I){
+    var pts=[], steps=120, i, Y, P, last=null;
+    for(i=0;i<=steps;i++){
+      Y = Ymin + (Ymax-Ymin)*i/steps;
+      P = (kind==="ad") ? (I - adS*Y) : (I + srS*Y);
+      if(P>=Pmin-0.01 && P<=Pmax+0.01){
+        pts.push([sx(Y),sy(P)]);
+        last=[Y,P];
+      }
+    }
+    return {pts:pts, last:last, first: pts.length? null:null};
+  }
+
+  function line(x1,y1,x2,y2,opt){
+    var el=document.createElementNS(SVGNS,"line");
+    el.setAttribute("x1",x1);el.setAttribute("y1",y1);el.setAttribute("x2",x2);el.setAttribute("y2",y2);
+    for(var k in opt) el.setAttribute(k,opt[k]);
+    return el;
+  }
+  function poly(pts,opt){
+    var el=document.createElementNS(SVGNS,"polyline");
+    el.setAttribute("points", pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" "));
+    el.setAttribute("fill","none");
+    for(var k in opt) el.setAttribute(k,opt[k]);
+    return el;
+  }
+  function text(x,y,str,opt){
+    var el=document.createElementNS(SVGNS,"text");
+    el.setAttribute("x",x);el.setAttribute("y",y);
+    el.textContent=str;
+    el.setAttribute("font-family","-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif");
+    for(var k in opt) el.setAttribute(k,opt[k]);
+    return el;
+  }
+  function rect(x,y,w,h,opt){
+    var el=document.createElementNS(SVGNS,"rect");
+    el.setAttribute("x",x);el.setAttribute("y",y);el.setAttribute("width",Math.max(0,w));el.setAttribute("height",Math.max(0,h));
+    for(var k in opt) el.setAttribute(k,opt[k]);
+    return el;
+  }
+  function circle(cx,cy,r,opt){
+    var el=document.createElementNS(SVGNS,"circle");
+    el.setAttribute("cx",cx);el.setAttribute("cy",cy);el.setAttribute("r",r);
+    for(var k in opt) el.setAttribute(k,opt[k]);
+    return el;
+  }
+
+  function curveLabel(kind,I,label,color,dim){
+    var c=clip(kind,I);
+    if(!c.last) return null;
+    var Y=c.last[0], P=c.last[1];
+    var x=sx(Y), y=sy(P);
+    // nudge label just outside the right end
+    var tx = Math.min(x+8, W-6), ty = y + (kind==="ad"? 14 : -6);
+    ty=Math.max(padT+10,Math.min(ty,padT+plotH-4));
+    return text(tx,ty,label,{ "font-size":"13","font-weight":dim?"500":"700","fill":color,"opacity":dim?"0.75":"1" });
+  }
+
+  function render(c, s){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var e = eq(c.adI,c.srI);
+    var g = gapType(e.Y);
+
+    // gap band (drawn first, behind)
+    if(g!=="full"){
+      var xA=sx(Math.min(e.Y,Ystar)), xB=sx(Math.max(e.Y,Ystar));
+      var fill = (g==="inflationary")? "#e7b15a" : "#6f9bd1";
+      svg.appendChild(rect(xA,padT,xB-xA,plotH,{fill:fill,opacity:"0.18"}));
+      var midx=(xA+xB)/2;
+      var lbl=(g==="inflationary")?"Inflationary gap":"Recessionary gap";
+      svg.appendChild(text(midx,padT+16,lbl,{ "text-anchor":"middle","font-size":"12.5","font-weight":"700","fill": g==="inflationary"?"#7d5410":"#274d7d" }));
+    }
+
+    // axes
+    svg.appendChild(line(padL,padT,padL,padT+plotH,{stroke:"#9aa39d","stroke-width":"1.5"}));
+    svg.appendChild(line(padL,padT+plotH,padL+plotW,padT+plotH,{stroke:"#9aa39d","stroke-width":"1.5"}));
+    svg.appendChild(text(padL-44,padT+12,"Price",{ "font-size":"12","fill":"#4a544f","font-weight":"600" }));
+    svg.appendChild(text(padL-44,padT+26,"level (P)",{ "font-size":"12","fill":"#4a544f","font-weight":"600" }));
+    svg.appendChild(text(padL+plotW,padT+plotH+38,"Real GDP (Y)",{ "font-size":"12","fill":"#4a544f","font-weight":"600","text-anchor":"end" }));
+
+    // LRAS (potential), vertical dashed
+    var xs=sx(Ystar);
+    svg.appendChild(line(xs,padT,xs,padT+plotH,{stroke:"#3a423e","stroke-width":"2","stroke-dasharray":"6 5"}));
+    svg.appendChild(text(xs,padT-8,"LRAS",{ "text-anchor":"middle","font-size":"13","font-weight":"700","fill":"#3a423e" }));
+    svg.appendChild(text(xs+4,padT+plotH+38,"potential",{ "text-anchor":"middle","font-size":"11","fill":"#4a544f" }));
+
+    // ghost (start) curves if shifted
+    var adMoved = Math.abs(c.adI - s.adI) > 0.01;
+    var srMoved = Math.abs(c.srI - s.srI) > 0.01;
+    if(adMoved){
+      svg.appendChild(poly(clip("ad",s.adI).pts,{stroke:"#1452a8","stroke-width":"2","stroke-dasharray":"2 5","opacity":"0.45"}));
+      var gl=curveLabel("ad",s.adI,"AD start","#1452a8",true); if(gl) svg.appendChild(gl);
+    }
+    if(srMoved){
+      svg.appendChild(poly(clip("sras",s.srI).pts,{stroke:"#bf3d1f","stroke-width":"2","stroke-dasharray":"2 5","opacity":"0.45"}));
+      var gl2=curveLabel("sras",s.srI,"SRAS start","#bf3d1f",true); if(gl2) svg.appendChild(gl2);
+    }
+
+    // current curves
+    svg.appendChild(poly(clip("ad",c.adI).pts,{stroke:"#1452a8","stroke-width":"3"}));
+    svg.appendChild(poly(clip("sras",c.srI).pts,{stroke:"#bf3d1f","stroke-width":"3"}));
+    var la=curveLabel("ad",c.adI,"AD","#1452a8",false); if(la) svg.appendChild(la);
+    var ls=curveLabel("sras",c.srI,"SRAS","#bf3d1f",false); if(ls) svg.appendChild(ls);
+
+    // equilibrium guide lines + dot
+    var ex=sx(e.Y), ey=sy(e.P);
+    if(e.P>=Pmin&&e.P<=Pmax&&e.Y>=Ymin&&e.Y<=Ymax){
+      svg.appendChild(line(padL,ey,ex,ey,{stroke:"#7c847f","stroke-width":"1","stroke-dasharray":"3 4"}));
+      svg.appendChild(line(ex,padT+plotH,ex,ey,{stroke:"#7c847f","stroke-width":"1","stroke-dasharray":"3 4"}));
+      svg.appendChild(text(padL-8,ey+4,Math.round(e.P).toString(),{ "text-anchor":"end","font-size":"11.5","fill":"#3a423e","font-weight":"600" }));
+      svg.appendChild(circle(ex,ey,7,{fill:"#13241d",stroke:"#fff","stroke-width":"2"}));
+    }
+  }
+
+  // ---- state text ----
+  function setState(html, e, g, kind){
+    document.getElementById("state").innerHTML = html;
+    var u = (g==="inflationary")? "below its natural rate (u &lt; u*)"
+          : (g==="recessionary")? "above its natural rate (u &gt; u*)"
+          : "at its natural rate (u = u*)";
+    var rows=[
+      ["Price level", Math.round(e.P)],
+      ["Output (Y)", Math.round(e.Y)],
+      ["Potential (Y*)", Ystar],
+      ["Output gap", g==="full"?"none (at potential)":(g==="inflationary"?"above potential":"below potential")]
+    ];
+    if(mode==="fiscal") rows.push(["Unemployment", g==="inflationary"?"below natural rate":(g==="recessionary"?"above natural rate":"at natural rate")]);
+    var b=document.getElementById("numsBody"); b.innerHTML="";
+    rows.forEach(function(r){
+      var tr=document.createElement("tr");
+      tr.innerHTML="<th scope='row'>"+r[0]+"</th><td>"+r[1]+"</td>";
+      b.appendChild(tr);
+    });
+  }
+
+  function gapWord(g){
+    if(g==="inflationary") return '<span class="tag infl">inflationary gap</span>';
+    if(g==="recessionary") return '<span class="tag rec">recessionary gap</span>';
+    return '<span class="tag full">full employment</span>';
+  }
+
+  // ---- animation ----
+  var animId=null;
+  function animateTo(target, after){
+    if(animId) cancelAnimationFrame(animId);
+    var from={adI:cur.adI, srI:cur.srI};
+    var t0=null;
+    function frame(ts){
+      if(t0===null) t0=ts;
+      var k = ANIM===0 ? 1 : Math.min(1,(ts-t0)/ANIM);
+      var e = k<0.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2; // easeInOutQuad
+      cur.adI = from.adI + (target.adI-from.adI)*e;
+      cur.srI = from.srI + (target.srI-from.srI)*e;
+      render(cur, start);
+      if(k<1){ animId=requestAnimationFrame(frame); }
+      else { cur.adI=target.adI; cur.srI=target.srI; render(cur,start); if(after) after(); }
+    }
+    animId=requestAnimationFrame(frame);
+  }
+
+  // ---- shocks ----
+  var AD_STEP=26, SR_STEP=20;
+  function clampGapOk(adI,srI){
+    var e=eq(adI,srI);
+    return e.Y>=58 && e.Y<=142 && e.P>=52 && e.P<=148;
+  }
+
+  function applyShock(kind){
+    var target={adI:cur.adI, srI:cur.srI};
+    if(kind==="ad-up")   target.adI+=AD_STEP;
+    if(kind==="ad-down") target.adI-=AD_STEP;
+    if(kind==="sras-up") target.srI-=SR_STEP;   // costs fall, rightward
+    if(kind==="sras-down") target.srI+=SR_STEP; // costs rise, leftward
+    if(!clampGapOk(target.adI,target.srI)) return; // ignore if pushes off view
+
+    hasShock=true; lastShock=kind;
+    animateTo(target, function(){
+      var e=eq(cur.adI,cur.srI), g=gapType(e.Y);
+      document.getElementById("longRun").disabled = (g==="full");
+      describeShort(kind,e,g);
+    });
+  }
+
+  function describeShort(kind,e,g){
+    var verb;
+    if(mode==="fiscal" && (kind==="ad-up"||kind==="ad-down")){
+      verb = (kind==="ad-up")
+        ? "Expansionary fiscal policy raised aggregate demand."
+        : "Contractionary fiscal policy lowered aggregate demand.";
+    } else {
+      verb = (kind==="ad-up")? "Aggregate demand increased."
+           : (kind==="ad-down")? "Aggregate demand decreased."
+           : (kind==="sras-up")? "Costs fell, so SRAS shifted right."
+           : "Costs rose, so SRAS shifted left.";
+    }
+    var place = (g==="inflationary")? "Output is above potential, so the economy is in an "+gapWord(g)+"."
+              : (g==="recessionary")? "Output is below potential, so the economy is in a "+gapWord(g)+"."
+              : "Output is back on the potential line, at "+gapWord(g)+".";
+    var nums = " Price level is "+Math.round(e.P)+" and output is "+Math.round(e.Y)+" against potential of "+Ystar+".";
+    var fis = (mode==="fiscal" && g!=="full")
+      ? (g==="inflationary"? " Unemployment is below its natural rate." : " Unemployment is above its natural rate.")
+      : "";
+    var next = (g==="full")? "" : " Press Step 2 to let the long run play out.";
+    setState("<strong>Short run.</strong> "+verb+" "+place+nums+fis+next, e, g, kind);
+  }
+
+  // ---- long run self-correction ----
+  function longRun(){
+    var e0=eq(cur.adI,cur.srI), g=gapType(e0.Y);
+    if(g==="full") return;
+    // target SRAS intercept so that SRAS meets current AD exactly at Ystar
+    var Ptarget = cur.adI - adS*Ystar;
+    var srTarget = Ptarget - srS*Ystar;
+    animateTo({adI:cur.adI, srI:srTarget}, function(){
+      var e=eq(cur.adI,cur.srI);
+      document.getElementById("longRun").disabled = true;
+      var reason = (g==="inflationary")
+        ? "Wages and costs rose, so SRAS shifted left until output returned to potential at a higher price level."
+        : "Wages and costs fell, so SRAS shifted right until output returned to potential at a lower price level.";
+      setState("<strong>Long run.</strong> "+reason+" The economy is back at "+gapWord("full")+". Price level is "+Math.round(e.P)+" and output is "+Ystar+".", e, "full", null);
+    });
+  }
+
+  // ---- scenarios (set up step 1 only) ----
+  function scenario(name){
+    if(name==="contract"){ setMode("fiscal"); } else if(name!=="contract"){ /* keep mode */ }
+    resetModel();
+    var map={ boom:"ad-up", slump:"ad-down", oil:"sras-down", contract:"ad-down" };
+    // run shock after a tick so reset render settles
+    setTimeout(function(){ applyShock(map[name]); }, 20);
+  }
+
+  // ---- mode ----
+  function setMode(m){
+    mode=m;
+    var std=document.getElementById("modeStd"), fis=document.getElementById("modeFiscal");
+    std.setAttribute("aria-pressed", m==="standard");
+    fis.setAttribute("aria-pressed", m==="fiscal");
+    document.getElementById("adUp").textContent   = (m==="fiscal")? "Expansionary policy" : "Increase demand";
+    document.getElementById("adDown").textContent = (m==="fiscal")? "Contractionary policy" : "Decrease demand";
+    document.getElementById("shockHint").textContent = (m==="fiscal")
+      ? "Fiscal policy moves aggregate demand. The readout also tracks unemployment against its natural rate."
+      : "A shock moves one curve. The dot jumps to the new short-run crossing.";
+  }
+
+  // ---- wire up ----
+  document.getElementById("shockRow").addEventListener("click",function(ev){
+    var b=ev.target.closest("button[data-shock]"); if(b) applyShock(b.getAttribute("data-shock"));
+  });
+  document.getElementById("longRun").addEventListener("click",longRun);
+  document.getElementById("reset").addEventListener("click",resetModel);
+  document.getElementById("modeStd").addEventListener("click",function(){setMode("standard");});
+  document.getElementById("modeFiscal").addEventListener("click",function(){setMode("fiscal");});
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-scn]"),function(b){
+    b.addEventListener("click",function(){ scenario(b.getAttribute("data-scn")); });
+  });
+
+  setMode("standard");
+  resetModel();
+})();
+</script>
+</body>
+</html>
