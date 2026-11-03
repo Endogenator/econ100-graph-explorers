@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ECON 100 Week 1: Build Your Economy</title>
+<style>
+:root{--green:#008345;--green-light:#e6f4ed;--gold:#c8960c;--gold-light:#fdf6e3;--red:#c0392b;--blue:#1a5cb5;--border:#d0d7de;--card:#f6f8fa;--text:#1a1a1a;--muted:#555;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Georgia,serif;background:#fafafa;color:var(--text);max-width:960px;margin:0 auto;padding:1.2rem;line-height:1.55;}
+h1{color:var(--green);font-size:1.55rem;margin-bottom:.2rem;}
+.sub{color:var(--muted);margin-bottom:1.1rem;}
+.card{border:1px solid var(--border);border-left:5px solid var(--green);border-radius:10px;background:#fff;padding:1rem 1.2rem;margin-bottom:1.1rem;}
+.card h2{font-size:1.05rem;color:var(--green);margin-bottom:.25rem;}
+.card p{font-size:.93rem;}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:1rem;align-items:start;}
+@media (max-width:760px){.grid{grid-template-columns:1fr;}}
+.chartbox{border:1px solid var(--border);border-radius:10px;background:#fff;padding:.5rem;}
+.chartbox svg{width:100%;height:auto;display:block;}
+label{display:block;font-size:.88rem;font-weight:bold;margin:.7rem 0 .15rem;}
+input[type=range]{width:100%;accent-color:var(--green);height:28px;}
+input[type=number],select{font-family:inherit;font-size:.95rem;border:1px solid var(--border);border-radius:8px;padding:.4rem .5rem;width:100%;background:#fff;}
+.btnrow{display:flex;gap:.4rem;flex-wrap:wrap;margin:.5rem 0;}
+.btn{border:2px solid var(--green);background:#fff;color:var(--green);border-radius:8px;padding:.45rem .8rem;font-family:inherit;font-weight:bold;cursor:pointer;font-size:.88rem;}
+.btn:hover{background:var(--green-light);}
+.btn.solid{background:var(--green);color:#fff;}
+.btn.solid:hover{background:#006835;}
+.btn:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.6rem;}
+.read{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.45rem .6rem;font-size:.82rem;}
+.read b{display:block;font-size:1.15rem;color:var(--green);}
+.read.warn b{color:var(--red);}
+.insight{margin-top:.7rem;padding:.7rem .85rem;border-radius:8px;border:1px solid var(--green);background:var(--green-light);font-size:.92rem;}
+.answer{margin-top:.8rem;padding:.8rem 1rem;border:2px solid var(--gold);background:var(--gold-light);border-radius:10px;}
+.answer .big{font-size:1.5rem;font-weight:bold;color:#8a6600;}
+.note{font-size:.8rem;color:var(--muted);margin-top:.3rem;}
+details{margin-top:.8rem;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;background:#fff;}
+summary{cursor:pointer;font-weight:bold;color:var(--green);font-size:.92rem;}
+details p{margin-top:.5rem;font-size:.9rem;}
+.manual{display:none;}
+footer{margin-top:1.4rem;padding-top:.8rem;border-top:1px solid #eee;font-size:.82rem;color:#888;}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important;}}
+</style>
+</head>
+<body>
+<h1>Week 1: Build Your Economy</h1>
+<p class="sub" id="sub">Your choices here become your starting conditions for every week that follows.</p>
+
+<div class="card manual" id="manual">
+  <h2>Enter your numbers</h2>
+  <p>Open this page from the link in your message and your numbers load on their own. If you opened it another way, choose your role and type the numbers from your message.</p>
+  <label for="mRole">Your role</label>
+  <select id="mRole"><option value="producer">Producer</option><option value="consumer">Consumer</option></select>
+  <div id="mProd">
+    <label for="mBc">Cups of coffee you could make with a balanced split</label><input type="number" id="mBc" value="12" min="1"/>
+    <label for="mBe">Cans of energy drink you could make with a balanced split</label><input type="number" id="mBe" value="12" min="1"/>
+  </div>
+  <div id="mCons" style="display:none;">
+    <label for="mB">Your weekly budget ($)</label><input type="number" id="mB" value="100" min="1"/>
+  </div>
+  <div class="btnrow"><button class="btn solid" id="mGo">Use these numbers</button></div>
+</div>
+
+<div id="app"></div>
+
+<footer>Crafton Hills College. Nothing to submit here: the survey is where you turn in your choice. This tool is still being improved, and feedback is welcome through your instructor.</footer>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const P=new URLSearchParams(location.search);
+function num(v,d){const n=parseFloat(v);return isFinite(n)&&n>0?n:d;}
+const VS=num(P.get('vs'),5), K=num(P.get('k'),36);
+let role=P.get('role'), bc=num(P.get('bc'),12), be=num(P.get('be'),12), budget=num(P.get('b'),100);
+let x=50, q=0, price=3;
+
+const r2=v=>Math.round(v*100)/100;
+function capC(x){return Math.max(1,Math.round(bc*(0.5+x/100)));}
+function capE(x){return Math.max(1,Math.round(be*(1.5-x/100)));}
+function taste(x){return r2(0.30+0.40*x/100);}
+function vC(x){return r2(2*taste(x)*VS*budget/100);}
+function vE(x){return r2(2*(1-taste(x))*VS*budget/100);}
+window.__calc={capC,capE,taste,vC,vE,setBase:(a,b,c)=>{bc=a;be=b;budget=c;}};
+
+function svgOpen(W,H,label){return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+label+'" font-family="Georgia,serif"><rect width="'+W+'" height="'+H+'" fill="#fff"/>';}
+
+/* ---------------- producer ---------------- */
+function renderProducer(){
+  $('sub').textContent='You are a producer. Decide how to train, and watch what you can make change.';
+  $('app').innerHTML=
+  '<div class="card"><h2>1. Where you start</h2><p>With a balanced split of your training you could make up to <b>'+bc+' cups of coffee</b> or <b>'+be+' cans of energy drink</b> in a week, or a mix. That is your natural talent. You have <b>100 training points</b> to split between coffee and energy drinks. Points toward coffee raise how much coffee you can make and lower how much energy drink you can make, by up to 50 percent either way.</p></div>'+
+  '<div class="grid"><div class="chartbox" id="chart"></div><div>'+
+    '<div class="card" style="margin-bottom:.6rem;"><h2>2. Train</h2>'+
+    '<label for="sx">Training points to coffee: <span id="xv"></span>, to energy drinks: <span id="xe"></span></label>'+
+    '<input type="range" id="sx" min="0" max="100" step="1" value="50" aria-describedby="insight"/>'+
+    '<div class="btnrow"><button class="btn" data-x="100">All coffee</button><button class="btn" data-x="50">Balanced</button><button class="btn" data-x="0">All energy drinks</button></div>'+
+    '<div class="readout" id="readout"></div>'+
+    '<div class="insight" id="insight" aria-live="polite"></div></div>'+
+    '<div class="card" style="margin-bottom:.6rem;"><h2>3. Try a production point</h2>'+
+    '<label for="sq">Cups of coffee you make this week: <span id="qv"></span></label>'+
+    '<input type="range" id="sq" min="0" max="12" step="1" value="0"/>'+
+    '<p id="qread"></p></div>'+
+    '<div class="answer"><div>Your answer for the Week 1 survey, training points to coffee:</div><div class="big" id="ans"></div><div class="btnrow"><button class="btn solid" id="copy">Copy my answer</button></div><div class="note" id="copyMsg" aria-live="polite">Type this number into the survey question that asks for your training points.</div></div>'+
+  '</div></div>'+
+  '<details><summary>What am I looking at?</summary>'+
+    '<p><b>The frontier.</b> The green line is the most you can make. Every point on or under it is something you can do this week. A point above it is out of reach for now, because you only have so much time and effort. That scarcity is why you have to choose.</p>'+
+    '<p><b>Opportunity cost.</b> To make one more cup of coffee you give up some energy drinks. How many is the slope of the line. Steeper means coffee costs you more energy drinks.</p>'+
+    '<p><b>Why choose a lean at all?</b> Leaning toward one good makes it cheaper for you to make, since each cup costs fewer lost cans, but the other good gets more expensive. Next week a market decides whether the lean pays off, because you will be selling to people who can buy from other producers too.</p>'+
+  '</details>';
+  $('sx').addEventListener('input',e=>{x=parseInt(e.target.value);updateP();});
+  $('sq').addEventListener('input',e=>{q=parseInt(e.target.value);updateP();});
+  document.querySelectorAll('[data-x]').forEach(b=>b.addEventListener('click',()=>{x=parseInt(b.dataset.x);$('sx').value=x;updateP();}));
+  $('copy').addEventListener('click',()=>copyAnswer(String(x)));
+  updateP();
+}
+function updateP(){
+  const C=capC(x),E=capE(x);
+  $('sq').max=C; if(q>C)q=C; $('sq').value=q;
+  $('xv').textContent=x; $('xe').textContent=100-x; $('ans').textContent=x;
+  const oc=r2(E/C), oe=r2(C/E);
+  const e=Math.round(E*(1-q/C)*10)/10;
+  $('readout').innerHTML=
+    '<div class="read">Most coffee<b>'+C+' cups</b></div><div class="read">Most energy drink<b>'+E+' cans</b></div>'+
+    '<div class="read">One cup costs you<b>'+oc+' cans</b></div><div class="read">One can costs you<b>'+oe+' cups</b></div>'+
+    '<div class="read">Cost to make a cup<b>$'+r2(K/C).toFixed(2)+'</b></div><div class="read">Cost to make a can<b>$'+r2(K/E).toFixed(2)+'</b></div>';
+  const dC=Math.round((C/bc-1)*100), dE=Math.round((E/be-1)*100);
+  let msg;
+  if(x>55) msg='You lean toward coffee. You can make '+Math.abs(dC)+' percent more coffee than your natural talent and '+Math.abs(dE)+' percent less energy drink. Coffee is now cheap for you to make (each cup costs only '+oc+' cans), but energy drinks are expensive for you (each can costs '+oe+' cups).';
+  else if(x<45) msg='You lean toward energy drinks. You can make '+Math.abs(dE)+' percent more energy drink than your natural talent and '+Math.abs(dC)+' percent less coffee. Energy drinks are now cheap for you to make (each can costs only '+oe+' cups), but coffee is expensive for you (each cup costs '+oc+' cans).';
+  else msg='You are balanced, so your trade-offs match your natural talent. You give up '+oc+' cans for each cup, and '+oe+' cups for each can. You are not especially cheap at either good.';
+  $('insight').textContent=msg;
+  $('qv').textContent=q;
+  $('qread').innerHTML='Making <b>'+q+' cups</b> leaves room for up to <b>'+e+' cans</b>. '+(q===C?'That is all your capacity for coffee, so nothing is left for energy drinks.':(q===0?'That is all energy drink. Move the slider to see what each cup of coffee costs you.':'Each extra cup takes about '+oc+' cans out of what you can make.'));
+  drawP(C,E);
+}
+function ticks(max,n){const out=[];const step=Math.max(1,Math.ceil(max/n));for(let v=0;v<=max;v+=step)out.push(v);return out;}
+function drawP(C,E){
+  const W=520,H=400,L=54,R=16,T=18,B=52,iw=W-L-R,ih=H-T-B;
+  const xMax=Math.ceil(bc*1.5*1.08),yMax=Math.ceil(be*1.5*1.08);
+  const X=v=>L+iw*v/xMax,Y=v=>T+ih-ih*v/yMax;
+  let s=svgOpen(W,H,'Your production possibilities frontier');
+  ticks(yMax,6).forEach(v=>{s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#eee"/><text x="'+(L-6)+'" y="'+(Y(v)+4)+'" text-anchor="end" font-size="11" fill="#555">'+v+'</text>';});
+  ticks(xMax,8).forEach(v=>{s+='<text x="'+X(v)+'" y="'+(T+ih+16)+'" text-anchor="middle" font-size="11" fill="#555">'+v+'</text>';});
+  s+='<line x1="'+L+'" y1="'+(T+ih)+'" x2="'+(W-R)+'" y2="'+(T+ih)+'" stroke="#333"/><line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(T+ih)+'" stroke="#333"/>';
+  s+='<text x="'+(L+iw/2)+'" y="'+(H-10)+'" text-anchor="middle" font-size="12" fill="#333">Cups of coffee per week</text>';
+  s+='<text transform="translate(14,'+(T+ih/2)+') rotate(-90)" text-anchor="middle" font-size="12" fill="#333">Cans of energy drink per week</text>';
+  // ghost baseline
+  s+='<line x1="'+X(bc)+'" y1="'+Y(0)+'" x2="'+X(0)+'" y2="'+Y(be)+'" stroke="#999" stroke-dasharray="5 4" stroke-width="1.6"/>';
+  s+='<text x="'+(X(bc*0.5)+8)+'" y="'+(Y(be*0.5)-8)+'" font-size="11" fill="#777">your natural talent</text>';
+  // current area + line
+  s+='<polygon points="'+X(0)+','+Y(0)+' '+X(C)+','+Y(0)+' '+X(0)+','+Y(E)+'" fill="#e6f4ed"/>';
+  s+='<line x1="'+X(C)+'" y1="'+Y(0)+'" x2="'+X(0)+'" y2="'+Y(E)+'" stroke="#008345" stroke-width="3"/>';
+  s+='<text x="'+(X(C*0.12))+'" y="'+(Y(E*0.12))+'" font-size="12" font-weight="bold" fill="#008345">You can make this</text>';
+  s+='<text x="'+(X(xMax*0.62))+'" y="'+(Y(yMax*0.9))+'" font-size="12" fill="#c0392b">Out of reach for now</text>';
+  // intercept labels
+  s+='<text x="'+(X(C))+'" y="'+(Y(0)-8)+'" text-anchor="middle" font-size="11" font-weight="bold" fill="#008345">'+C+'</text>';
+  s+='<text x="'+(X(0)+8)+'" y="'+(Y(E)+4)+'" font-size="11" font-weight="bold" fill="#008345">'+E+'</text>';
+  // production point
+  const e=E*(1-q/C);
+  s+='<line x1="'+X(q)+'" y1="'+Y(e)+'" x2="'+X(q)+'" y2="'+Y(0)+'" stroke="#c8960c" stroke-dasharray="4 3"/><line x1="'+X(0)+'" y1="'+Y(e)+'" x2="'+X(q)+'" y2="'+Y(e)+'" stroke="#c8960c" stroke-dasharray="4 3"/>';
+  s+='<circle cx="'+X(q)+'" cy="'+Y(e)+'" r="6" fill="#c8960c"/>';
+  s+='</svg>';
+  $('chart').innerHTML=s;
+}
+
+/* ---------------- consumer ---------------- */
+function renderConsumer(){
+  $('sub').textContent='You are a consumer. Decide what each drink means to you, and watch what you are willing to pay change.';
+  $('app').innerHTML=
+  '<div class="card"><h2>1. Where you start</h2><p>Your weekly budget is <b>$'+budget.toFixed(0)+'</b>. You have <b>100 taste points</b> to split between coffee and energy drinks. More points for one means fewer for the other, because you cannot love everything equally. Your split decides what each drink is worth to you, which is the most you would pay for one.</p></div>'+
+  '<div class="grid"><div class="chartbox" id="chart"></div><div>'+
+    '<div class="card" style="margin-bottom:.6rem;"><h2>2. Spend your taste points</h2>'+
+    '<label for="sx">Taste points to coffee: <span id="xv"></span>, to energy drinks: <span id="xe"></span></label>'+
+    '<input type="range" id="sx" min="0" max="100" step="1" value="50"/>'+
+    '<div class="btnrow"><button class="btn" data-x="100">Mostly coffee</button><button class="btn" data-x="50">Balanced</button><button class="btn" data-x="0">Mostly energy drinks</button></div>'+
+    '<div class="readout" id="readout"></div>'+
+    '<div class="insight" id="insight" aria-live="polite"></div></div>'+
+    '<div class="card" style="margin-bottom:.6rem;"><h2>3. Try a price</h2>'+
+    '<label for="sp">If the price of each drink were: <span id="pv"></span></label>'+
+    '<input type="range" id="sp" min="0" max="12" step="0.25" value="3"/>'+
+    '<p id="pread"></p></div>'+
+    '<div class="answer"><div>Your answer for the Week 1 survey, taste points to coffee:</div><div class="big" id="ans"></div><div class="btnrow"><button class="btn solid" id="copy">Copy my answer</button></div><div class="note" id="copyMsg" aria-live="polite">Type this number into the survey question that asks for your taste points.</div></div>'+
+  '</div></div>'+
+  '<details><summary>What am I looking at?</summary>'+
+    '<p><b>Value to you.</b> Each bar is the most you would pay for one of that drink. If the price is at or below the bar you would buy it, and the gap between the bar and the price is what you keep. If the price is above the bar you would skip it.</p>'+
+    '<p><b>Scarcity applies to tastes too.</b> You have a fixed number of points, so wanting one drink more means wanting the other less. Economists call this a trade-off, and it is why every choice has an opportunity cost.</p>'+
+    '<p><b>Where this goes.</b> The most you would pay is the starting point of demand. Next week your own number joins everyone else\'s, and together they form the class demand curve.</p>'+
+  '</details>';
+  $('sx').addEventListener('input',e=>{x=parseInt(e.target.value);updateC();});
+  $('sp').addEventListener('input',e=>{price=parseFloat(e.target.value);updateC();});
+  document.querySelectorAll('[data-x]').forEach(b=>b.addEventListener('click',()=>{x=parseInt(b.dataset.x);$('sx').value=x;updateC();}));
+  $('copy').addEventListener('click',()=>copyAnswer(String(x)));
+  updateC();
+}
+function updateC(){
+  const a=vC(x),b=vE(x);
+  $('xv').textContent=x;$('xe').textContent=100-x;$('ans').textContent=x;$('pv').textContent='$'+price.toFixed(2);
+  $('readout').innerHTML='<div class="read">Most you would pay for a cup of coffee<b>$'+a.toFixed(2)+'</b></div><div class="read">Most you would pay for a can of energy drink<b>$'+b.toFixed(2)+'</b></div>';
+  let msg;
+  if(x>55) msg='You lean toward coffee. A cup is worth about $'+(a-b).toFixed(2)+' more to you than a can of energy drink, so you will pay more for coffee and bid lower for energy drinks.';
+  else if(x<45) msg='You lean toward energy drinks. A can is worth about $'+(b-a).toFixed(2)+' more to you than a cup of coffee, so you will pay more for energy drinks and bid lower for coffee.';
+  else msg='You are balanced, so you value both drinks about the same. Whichever is cheaper that week will tend to win your money.';
+  $('insight').textContent=msg;
+  const chip=(name,v)=>price<=v+1e-9?('<b>'+name+':</b> you would buy it and keep $'+(v-price).toFixed(2)+'.'):('<b>'+name+':</b> you would skip it, since it costs more than it is worth to you.');
+  $('pread').innerHTML=chip('Coffee',a)+'<br/>'+chip('Energy drink',b);
+  drawC(a,b);
+}
+function drawC(a,b){
+  const W=520,H=300,L=140,R=24,T=20,B=48,iw=W-L-R;
+  const max=12,X=v=>L+iw*v/max;
+  let s=svgOpen(W,H,'What each drink is worth to you');
+  for(let v=0;v<=max;v+=2){s+='<line x1="'+X(v)+'" x2="'+X(v)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="#eee"/><text x="'+X(v)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="11" fill="#555">$'+v+'</text>';}
+  s+='<text x="'+(L+iw/2)+'" y="'+(H-10)+'" text-anchor="middle" font-size="12" fill="#333">Dollars</text>';
+  const bar=(i,name,v,col)=>{const y=T+30+i*100;const buy=price<=v+1e-9;
+    return '<text x="'+(L-10)+'" y="'+(y+30)+'" text-anchor="end" font-size="13" font-weight="bold" fill="#333">'+name+'</text>'+
+      '<rect x="'+L+'" y="'+y+'" width="'+(X(v)-L)+'" height="46" fill="'+(buy?col:'#bbb')+'" rx="3"/>'+
+      '<text x="'+(X(v)+8)+'" y="'+(y+29)+'" font-size="13" font-weight="bold" fill="#333">$'+v.toFixed(2)+'</text>';};
+  s+=bar(0,'Coffee',a,'#6b4a2f')+bar(1,'Energy drink',b,'#c0392b');
+  s+='<line x1="'+X(price)+'" x2="'+X(price)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="#c8960c" stroke-width="2.2" stroke-dasharray="5 4"/>';
+  s+='<text x="'+(X(price)+5)+'" y="'+(T+12)+'" font-size="11" font-weight="bold" fill="#8a6600">price $'+price.toFixed(2)+'</text>';
+  s+='</svg>';
+  $('chart').innerHTML=s;
+}
+
+function copyAnswer(t){
+  const msg=$('copyMsg');
+  function done(ok){msg.textContent=ok?'Copied. Paste it into the survey.':'Select and copy this number: '+t;}
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>done(true),()=>done(false));}
+    else done(false);
+  }catch(e){done(false);}
+}
+
+function start(){
+  $('manual').style.display='none';
+  if(role==='consumer') renderConsumer(); else renderProducer();
+}
+if(role==='producer'||role==='consumer'){ start(); }
+else{
+  $('manual').style.display='block';
+  $('mRole').addEventListener('change',()=>{const c=$('mRole').value==='consumer';$('mProd').style.display=c?'none':'block';$('mCons').style.display=c?'block':'none';});
+  $('mGo').addEventListener('click',()=>{role=$('mRole').value;bc=num($('mBc').value,12);be=num($('mBe').value,12);budget=num($('mB').value,100);start();});
+}
+})();
+</script>
+</body>
+</html>
